@@ -14,7 +14,272 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      competitor_content: {
+        Row: {
+          analysis_notes: string | null
+          competitor_id: string
+          content_body: string | null
+          created_at: string
+          engagement_metrics: Json | null
+          id: string
+          is_analyzed: boolean
+          platform: string
+          published_at: string | null
+          tags: string[] | null
+          title: string
+          url: string | null
+        }
+        Insert: {
+          analysis_notes?: string | null
+          competitor_id: string
+          content_body?: string | null
+          created_at?: string
+          engagement_metrics?: Json | null
+          id?: string
+          is_analyzed?: boolean
+          platform: string
+          published_at?: string | null
+          tags?: string[] | null
+          title: string
+          url?: string | null
+        }
+        Update: {
+          analysis_notes?: string | null
+          competitor_id?: string
+          content_body?: string | null
+          created_at?: string
+          engagement_metrics?: Json | null
+          id?: string
+          is_analyzed?: boolean
+          platform?: string
+          published_at?: string | null
+          tags?: string[] | null
+          title?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_content_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitors: {
+        Row: {
+          agency_name: string | null
+          audience_size: Json | null
+          avatar_url: string | null
+          content_style: string | null
+          created_at: string
+          frequency: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          platforms: Json | null
+          what_they_sell: string | null
+        }
+        Insert: {
+          agency_name?: string | null
+          audience_size?: Json | null
+          avatar_url?: string | null
+          content_style?: string | null
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          platforms?: Json | null
+          what_they_sell?: string | null
+        }
+        Update: {
+          agency_name?: string | null
+          audience_size?: Json | null
+          avatar_url?: string | null
+          content_style?: string | null
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          platforms?: Json | null
+          what_they_sell?: string | null
+        }
+        Relationships: []
+      }
+      content_idea_pillars: {
+        Row: {
+          content_idea_id: string
+          pillar_id: string
+        }
+        Insert: {
+          content_idea_id: string
+          pillar_id: string
+        }
+        Update: {
+          content_idea_id?: string
+          pillar_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_idea_pillars_content_idea_id_fkey"
+            columns: ["content_idea_id"]
+            isOneToOne: false
+            referencedRelation: "content_ideas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_idea_pillars_pillar_id_fkey"
+            columns: ["pillar_id"]
+            isOneToOne: false
+            referencedRelation: "content_pillars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_ideas: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          description: string | null
+          draft_content: string | null
+          id: string
+          key_message: string | null
+          performance: Json | null
+          platform: string | null
+          priority: string | null
+          published_url: string | null
+          scheduled_date: string | null
+          source: string | null
+          source_competitor_id: string | null
+          source_content_id: string | null
+          status: string
+          target_audience: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          description?: string | null
+          draft_content?: string | null
+          id?: string
+          key_message?: string | null
+          performance?: Json | null
+          platform?: string | null
+          priority?: string | null
+          published_url?: string | null
+          scheduled_date?: string | null
+          source?: string | null
+          source_competitor_id?: string | null
+          source_content_id?: string | null
+          status?: string
+          target_audience?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          description?: string | null
+          draft_content?: string | null
+          id?: string
+          key_message?: string | null
+          performance?: Json | null
+          platform?: string | null
+          priority?: string | null
+          published_url?: string | null
+          scheduled_date?: string | null
+          source?: string | null
+          source_competitor_id?: string | null
+          source_content_id?: string | null
+          status?: string
+          target_audience?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_ideas_source_competitor_id_fkey"
+            columns: ["source_competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_ideas_source_content_id_fkey"
+            columns: ["source_content_id"]
+            isOneToOne: false
+            referencedRelation: "competitor_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_pillars: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          description?: string | null
+          icon: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      weekly_briefs: {
+        Row: {
+          competitor_highlights: Json | null
+          created_at: string
+          id: string
+          notes: string | null
+          suggested_content: Json | null
+          trending_topics: string[] | null
+          week_start: string
+        }
+        Insert: {
+          competitor_highlights?: Json | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          suggested_content?: Json | null
+          trending_topics?: string[] | null
+          week_start: string
+        }
+        Update: {
+          competitor_highlights?: Json | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          suggested_content?: Json | null
+          trending_topics?: string[] | null
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
