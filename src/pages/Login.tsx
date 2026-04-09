@@ -3,7 +3,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { RocketLaunchIcon } from '@heroicons/react/24/solid';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
@@ -35,8 +36,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md border-border">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
-            <Zap className="h-8 w-8 text-primary" />
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-b from-primary/80 to-primary border border-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3),inset_0_-1px_0_0_rgba(0,0,0,0.1)] brightness-110">
+            <RocketLaunchIcon className="h-7 w-7 text-white" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">Nexora Content Engine</CardTitle>
