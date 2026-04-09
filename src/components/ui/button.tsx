@@ -9,19 +9,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: [
-          "bg-primary text-primary-foreground",
-          "border border-primary",
-          "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25),inset_0_-1px_0_0_rgba(0,0,0,0.15),0_1px_2px_rgba(0,0,0,0.06)]",
-          "hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3),inset_0_-1px_0_0_rgba(0,0,0,0.2),0_1px_3px_rgba(0,0,0,0.08)]",
-          "hover:brightness-105",
-        ].join(" "),
-        destructive: [
-          "bg-destructive text-destructive-foreground",
-          "border border-destructive",
-          "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),inset_0_-1px_0_0_rgba(0,0,0,0.15),0_1px_2px_rgba(0,0,0,0.06)]",
-          "hover:brightness-105",
-        ].join(" "),
+        default: "bg-primary text-primary-foreground brand-surface",
+        destructive: "bg-destructive text-destructive-foreground brand-surface",
         outline: [
           "bg-white text-foreground/75",
           "border border-black/[0.08]",

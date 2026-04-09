@@ -126,7 +126,7 @@ export default function ContentIdeas() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">Ideas de Contenido</h1>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={generateIdea} disabled={generatingIdea}>
+          <Button variant="outline" onClick={generateIdea} disabled={generatingIdea}>
             {generatingIdea ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generando...</> : <><Sparkles className="mr-2 h-4 w-4" /> Generar con AI</>}
           </Button>
           <Button onClick={() => setShowNew(true)}><Plus className="mr-2 h-4 w-4" /> Nueva Idea</Button>

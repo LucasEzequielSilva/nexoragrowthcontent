@@ -112,6 +112,24 @@
   .shadow-elevated {
     box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   }
+
+  /* Brand surface — use on any element with bg-primary for consistent identity */
+  .brand-surface {
+    filter: brightness(1.1);
+    border: 1px solid hsl(var(--primary));
+    box-shadow:
+      inset 0 1px 0 0 rgba(255,255,255,0.3),
+      inset 0 -1px 0 0 rgba(0,0,0,0.1),
+      0 1px 2px rgba(0,0,0,0.06);
+    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .brand-surface:hover, .brand-surface-hover:hover {
+    filter: brightness(1);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255,255,255,0.2),
+      inset 0 -1px 0 0 rgba(0,0,0,0.2),
+      0 1px 3px rgba(0,0,0,0.1);
+  }
 }
 
 @layer utilities {

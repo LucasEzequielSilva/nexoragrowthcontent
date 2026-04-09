@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "polish": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "8456d3d9958ac8c4cb968378ed65d3d86e0ce51eb2ce31edfd19e5050d575357"
+    }
+  }
+}
