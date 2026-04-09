@@ -20,9 +20,9 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading, switching } = useAuth();
 
-  if (loading) {
+  if (loading || switching) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -51,9 +51,9 @@ function ProtectedRoutes() {
 }
 
 function AuthRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading, switching } = useAuth();
 
-  if (loading) {
+  if (loading || switching) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

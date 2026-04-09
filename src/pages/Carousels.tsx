@@ -323,7 +323,7 @@ export default function Carousels() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Descripcion / Nota visual</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Descripción / Nota visual</label>
                   <Input
                     value={slide.description}
                     onChange={(e) => updateSlide(activeSlide, 'description', e.target.value)}
@@ -439,7 +439,7 @@ export default function Carousels() {
         <DialogContent>
           <DialogHeader><DialogTitle>Nuevo Carrusel</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Titulo del carrusel (ej: 5 errores al lanzar tu MVP)" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+            <Input placeholder="Título del carrusel (ej: 5 errores al lanzar tu MVP)" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
             <Select value={newPlatform} onValueChange={setNewPlatform}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>

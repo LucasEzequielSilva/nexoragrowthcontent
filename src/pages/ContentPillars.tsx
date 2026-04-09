@@ -34,10 +34,10 @@ export default function ContentPillars() {
   const savePillar = async () => {
     if (editPillar) {
       await supabase.from('content_pillars').update(form).eq('id', editPillar.id);
-      toast({ title: 'Pillar updated!' });
+      toast({ title: 'Pilar actualizado' });
     } else {
       await supabase.from('content_pillars').insert(form);
-      toast({ title: 'Pillar created!' });
+      toast({ title: 'Pilar creado' });
     }
     setShowNew(false);
     setEditPillar(null);
@@ -47,7 +47,7 @@ export default function ContentPillars() {
 
   const deletePillar = async (id: string) => {
     await supabase.from('content_pillars').delete().eq('id', id);
-    toast({ title: 'Pillar deleted' });
+    toast({ title: 'Pilar eliminado' });
     setEditPillar(null);
     setShowNew(false);
     fetchPillars();
@@ -66,7 +66,7 @@ export default function ContentPillars() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Pilares de Contenido</h1>
         <Button onClick={() => { setEditPillar(null); setForm({ name: '', description: '', color: '#6366f1', icon: 'Hammer' }); setShowNew(true); }}>
-          <Plus className="mr-2 h-4 w-4" /> New Pillar
+          <Plus className="mr-2 h-4 w-4" /> Nuevo Pilar
         </Button>
       </div>
 
@@ -107,7 +107,7 @@ export default function ContentPillars() {
                 <Input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Icon</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Ícono</label>
                 <div className="flex gap-1 flex-wrap">
                   {Object.keys(iconMap).map(name => {
                     const I = iconMap[name];

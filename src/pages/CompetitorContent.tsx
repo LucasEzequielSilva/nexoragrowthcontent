@@ -108,7 +108,7 @@ export default function CompetitorContentLog() {
 
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <Card><CardContent className="p-8 text-center text-muted-foreground">No hay contenido registrado todavia.</CardContent></Card>
+          <Card><CardContent className="p-8 text-center text-muted-foreground">No hay contenido registrado todavía.</CardContent></Card>
         ) : filtered.map(c => {
           const Icon = platformIcons[c.platform] || FileText;
           const metrics = (c.engagement_metrics || {}) as Record<string, number>;
@@ -192,9 +192,9 @@ export default function CompetitorContentLog() {
                 <SelectItem value="twitter">X/Twitter</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="Titulo" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            <Input placeholder="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <Input placeholder="URL" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
-            <Textarea placeholder="Contenido / Transcripcion" value={form.content_body} onChange={(e) => setForm({ ...form, content_body: e.target.value })} />
+            <Textarea placeholder="Contenido / Transcripción" value={form.content_body} onChange={(e) => setForm({ ...form, content_body: e.target.value })} />
             <Button onClick={createContent} disabled={!form.competitor_id || !form.title} className="w-full">Registrar</Button>
           </div>
         </DialogContent>

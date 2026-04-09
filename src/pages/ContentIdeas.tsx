@@ -60,7 +60,7 @@ export default function ContentIdeas() {
   const createIdea = async () => {
     const { error } = await supabase.from('content_ideas').insert({ title: newTitle, description: newDesc, platform: newPlatform, status: newStatus, priority: newPriority, content_type: newType });
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Idea created!' });
+    toast({ title: 'Idea creada' });
     setShowNew(false);
     setNewTitle(''); setNewDesc('');
     fetchIdeas();
@@ -139,7 +139,7 @@ export default function ContentIdeas() {
           <Input placeholder="Buscar ideas..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Estado" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los estados</SelectItem>
             {statuses.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
@@ -206,9 +206,9 @@ export default function ContentIdeas() {
               <Select value={newPriority} onValueChange={setNewPriority}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="medium">Media</SelectItem>
+                  <SelectItem value="low">Baja</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={newStatus} onValueChange={setNewStatus}>
@@ -238,7 +238,7 @@ export default function ContentIdeas() {
                 </div>
                 {selectedIdea.description && <p className="text-sm text-muted-foreground">{selectedIdea.description}</p>}
                 {selectedIdea.target_audience && <div><p className="text-xs text-muted-foreground">Target Audience</p><p className="text-sm">{selectedIdea.target_audience}</p></div>}
-                {selectedIdea.scheduled_date && <div><p className="text-xs text-muted-foreground">Scheduled</p><p className="text-sm">{selectedIdea.scheduled_date}</p></div>}
+                {selectedIdea.scheduled_date && <div><p className="text-xs text-muted-foreground">Programado</p><p className="text-sm">{selectedIdea.scheduled_date}</p></div>}
                 {selectedIdea.draft_content && (
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Borrador</p>

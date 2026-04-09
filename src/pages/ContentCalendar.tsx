@@ -49,7 +49,7 @@ export default function ContentCalendar() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Content Calendar</h1>
+        <h1 className="text-[22px] font-bold">Calendario</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
             <ChevronLeft className="h-4 w-4" />
@@ -64,7 +64,7 @@ export default function ContentCalendar() {
       <Card>
         <CardContent className="p-4">
           <div className="grid grid-cols-7 gap-px">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+            {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => (
               <div key={d} className="p-2 text-xs font-medium text-muted-foreground text-center">{d}</div>
             ))}
             {days.map(day => {
@@ -84,7 +84,7 @@ export default function ContentCalendar() {
                       </div>
                     );
                   })}
-                  {dayIdeas.length > 2 && <div className="text-xs text-muted-foreground">+{dayIdeas.length - 2} more</div>}
+                  {dayIdeas.length > 2 && <div className="text-xs text-muted-foreground">+{dayIdeas.length - 2} más</div>}
                 </div>
               );
             })}

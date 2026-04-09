@@ -73,7 +73,7 @@ export default function WeeklyBriefs() {
         <Card>
           <CardContent className="p-12 text-center">
             <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No hay briefs todavia. Genera tu primer brief semanal.</p>
+            <p className="text-muted-foreground">No hay briefs todavía. Genera tu primer brief semanal.</p>
           </CardContent>
         </Card>
       ) : (

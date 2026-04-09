@@ -53,12 +53,17 @@ function getDisplayName(email: string): string {
 interface Props { collapsed?: boolean; }
 
 export function AccountSwitcher({ collapsed = false }: Props) {
-  const { user, signOut } = useAuth();
+  const { user, signOut, setSwitching: setAuthSwitching } = useAuth();
   const { toast } = useToast();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addEmail, setAddEmail] = useState('');
   const [addPassword, setAddPassword] = useState('');
-  const [switching, setSwitching] = useState(false);
+  const [switching, setSwitchingLocal] = useState(false);
+
+  const setSwitching = (v: boolean) => {
+    setSwitchingLocal(v);
+    setAuthSwitching(v);
+  };
 
   const currentEmail = user?.email || '';
   const otherAccounts = getAccounts().filter(a => a.email !== currentEmail);
@@ -175,7 +180,7 @@ export function AccountSwitcher({ collapsed = false }: Props) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent/50 transition-colors">
+          <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-accent/50 transition-colors bg-white border border-black/[0.12] shadow-[0_1px_2px_rgba(0,0,0,0.015)]">
             <Avatar className="h-8 w-8 shrink-0">
               <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">{getInitials(currentEmail)}</AvatarFallback>
             </Avatar>

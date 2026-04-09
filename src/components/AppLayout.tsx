@@ -4,9 +4,9 @@ import { AppSidebar } from '@/components/AppSidebar';
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 py-4 rounded-md">
           <header className="h-14 flex items-center px-8 shrink-0 sticky top-0 z-10 bg-background/80 backdrop-blur-md">
             <SidebarTrigger className="mr-4 text-muted-foreground/60 hover:text-foreground transition-colors" />
           </header>

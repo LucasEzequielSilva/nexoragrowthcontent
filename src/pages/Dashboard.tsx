@@ -16,13 +16,13 @@ import type { ComponentType, SVGProps } from 'react';
 
 type HeroIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
-const statusConfig: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-  idea:        { label: 'Idea',         dot: 'bg-slate-400',   bg: 'bg-slate-50',   text: 'text-slate-500' },
-  researching: { label: 'Investigación', dot: 'bg-blue-500',   bg: 'bg-blue-50',    text: 'text-blue-600' },
-  drafting:    { label: 'Borrador',     dot: 'bg-amber-500',   bg: 'bg-amber-50',   text: 'text-amber-600' },
-  review:      { label: 'Revisión',     dot: 'bg-orange-500',  bg: 'bg-orange-50',  text: 'text-orange-600' },
-  scheduled:   { label: 'Programado',   dot: 'bg-violet-500',  bg: 'bg-violet-50',  text: 'text-violet-600' },
-  published:   { label: 'Publicado',    dot: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600' },
+const statusConfig: Record<string, { label: string; dot: string; bg: string; text: string; badge: 'secondary' | 'info' | 'warning' | 'default' | 'violet' | 'success' }> = {
+  idea:        { label: 'Idea',         dot: 'bg-slate-400',   bg: 'bg-slate-50',   text: 'text-slate-500',  badge: 'secondary' },
+  researching: { label: 'Investigación', dot: 'bg-blue-500',   bg: 'bg-blue-50',    text: 'text-blue-600',   badge: 'info' },
+  drafting:    { label: 'Borrador',     dot: 'bg-amber-500',   bg: 'bg-amber-50',   text: 'text-amber-600',  badge: 'warning' },
+  review:      { label: 'Revisión',     dot: 'bg-orange-500',  bg: 'bg-orange-50',  text: 'text-orange-600', badge: 'default' },
+  scheduled:   { label: 'Programado',   dot: 'bg-violet-500',  bg: 'bg-violet-50',  text: 'text-violet-600', badge: 'violet' },
+  published:   { label: 'Publicado',    dot: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600', badge: 'success' },
 };
 
 const platformIcons: Record<string, HeroIcon> = {
@@ -73,14 +73,14 @@ export default function Dashboard() {
   }
 
   const stats = [
-    { label: 'Ideas en Pipeline', value: ideas.length, icon: LightBulbIcon, iconBg: 'bg-orange-100', iconColor: 'text-orange-600' },
-    { label: 'Programado', value: thisWeek.length, icon: CalendarIcon, iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
-    { label: 'Competidores', value: competitors.length, icon: UserGroupIcon, iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600' },
-    { label: 'Sugerencias agente', value: 0, icon: CpuChipIcon, iconBg: 'bg-violet-100', iconColor: 'text-violet-600' },
+    { label: 'Ideas en Pipeline', value: ideas.length, icon: LightBulbIcon, iconBg: 'bg-gradient-to-b from-orange-400 to-orange-600', iconColor: 'text-white', borderColor: 'border-orange-600' },
+    { label: 'Programado', value: thisWeek.length, icon: CalendarIcon, iconBg: 'bg-gradient-to-b from-blue-400 to-blue-600', iconColor: 'text-white', borderColor: 'border-blue-600' },
+    { label: 'Competidores', value: competitors.length, icon: UserGroupIcon, iconBg: 'bg-gradient-to-b from-emerald-400 to-emerald-600', iconColor: 'text-white', borderColor: 'border-emerald-600' },
+    { label: 'Sugerencias agente', value: 0, icon: CpuChipIcon, iconBg: 'bg-gradient-to-b from-violet-400 to-violet-600', iconColor: 'text-white', borderColor: 'border-violet-600' },
   ];
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-8 max-w-[1100px]">
+    <motion.div variants={container} initial="hidden" animate="show" className="space-y-8 max-w-[1100px] ">
       {/* Header */}
       <motion.div variants={item} className="flex items-end justify-between">
         <div>
@@ -101,7 +101,7 @@ export default function Dashboard() {
           return (
             <Card key={stat.label} className="p-0">
               <CardContent className="p-5">
-                <div className={`w-11 h-11 rounded-2xl ${stat.iconBg} flex items-center justify-center mb-4`}>
+                <div className={`w-11 h-11 rounded-2xl ${stat.iconBg} flex items-center justify-center mb-4 border ${stat.borderColor} brightness-110 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3),inset_0_-1px_0_0_rgba(0,0,0,0.1)]`}>
                   <Icon className={`h-5 w-5 ${stat.iconColor}`} />
                 </div>
                 <p className="text-[28px] font-bold tracking-tight tabular-nums leading-none">{stat.value}</p>
@@ -183,8 +183,7 @@ export default function Dashboard() {
                           <p className="text-[14px] font-medium truncate">{idea.title}</p>
                           <p className="text-[12px] text-muted-foreground">{idea.scheduled_date}</p>
                         </div>
-                        <Badge variant="outline" className="gap-1.5 shrink-0">
-                          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                        <Badge variant={cfg.badge} className="shrink-0">
                           {cfg.label}
                         </Badge>
                       </div>
