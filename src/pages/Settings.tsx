@@ -21,8 +21,8 @@ export default function SettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Input placeholder="Brand Name" defaultValue="Waves Builders" />
-          <Input placeholder="YouTube Handle" defaultValue="@wavesbuilders" />
+          <Input placeholder="Brand Name" defaultValue="Nexora" />
+          <Input placeholder="YouTube Handle" defaultValue="@nexora" />
           <Input placeholder="LinkedIn URL" />
           <Input placeholder="X/Twitter Handle" />
           <Button>Save Profile</Button>

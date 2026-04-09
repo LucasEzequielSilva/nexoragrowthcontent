@@ -80,6 +80,7 @@ export type Database = {
           name: string
           notes: string | null
           platforms: Json | null
+          tier: string | null
           what_they_sell: string | null
         }
         Insert: {
@@ -94,6 +95,7 @@ export type Database = {
           name: string
           notes?: string | null
           platforms?: Json | null
+          tier?: string | null
           what_they_sell?: string | null
         }
         Update: {
@@ -108,6 +110,7 @@ export type Database = {
           name?: string
           notes?: string | null
           platforms?: Json | null
+          tier?: string | null
           what_they_sell?: string | null
         }
         Relationships: []

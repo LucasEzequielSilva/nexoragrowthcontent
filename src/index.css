@@ -6,57 +6,65 @@
 
 @layer base {
   :root {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    /* Daybridge-inspired — warm off-white, generous, clean */
+    --background: 40 20% 97%;
+    --foreground: 20 14% 8%;
 
-    --card: 224 71% 6%;
-    --card-foreground: 213 31% 91%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
 
-    --popover: 224 71% 6%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
 
-    --primary: 239 84% 67%;
+    /* Orange accent — warm, confident */
+    --primary: 24 94% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 224 71% 10%;
-    --secondary-foreground: 213 31% 91%;
+    --secondary: 30 8% 94%;
+    --secondary-foreground: 0 0% 28%;
 
-    --muted: 224 71% 10%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 40 12% 94%;
+    --muted-foreground: 20 6% 46%;
 
-    --accent: 224 71% 12%;
-    --accent-foreground: 213 31% 91%;
+    --accent: 30 8% 94%;
+    --accent-foreground: 0 0% 20%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 224 30% 16%;
-    --input: 224 30% 16%;
-    --ring: 239 84% 67%;
+    --border: 30 6% 90%;
+    --input: 30 6% 90%;
+    --ring: 24 94% 50%;
 
-    --radius: 0.5rem;
+    /* Radii — generous, premium */
+    --radius: 0.75rem;
 
-    --sidebar-background: 224 71% 5%;
-    --sidebar-foreground: 213 31% 80%;
-    --sidebar-primary: 239 84% 67%;
+    /* Sidebar — warm tinted, slightly darker than main bg */
+    --sidebar-background: 40 14% 95%;
+    --sidebar-foreground: 0 0% 40%;
+    --sidebar-primary: 24 94% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 71% 10%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 224 30% 14%;
-    --sidebar-ring: 239 84% 67%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 7%;
+    --sidebar-border: 30 6% 89%;
+    --sidebar-ring: 24 94% 50%;
 
-    --chart-1: 239 84% 67%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-1: 24 94% 50%;
+    --chart-2: 152 60% 42%;
+    --chart-3: 217 78% 55%;
+    --chart-4: 280 60% 55%;
+    --chart-5: 340 70% 52%;
 
-    --status-idea: 215 20% 55%;
-    --status-researching: 217 91% 60%;
-    --status-drafting: 48 96% 53%;
-    --status-review: 25 95% 53%;
-    --status-scheduled: 271 91% 65%;
-    --status-published: 142 71% 45%;
+    --status-idea: 0 0% 60%;
+    --status-researching: 217 78% 55%;
+    --status-drafting: 45 93% 47%;
+    --status-review: 24 94% 50%;
+    --status-scheduled: 262 56% 55%;
+    --status-published: 152 60% 42%;
+
+    /* Motion */
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
@@ -72,6 +80,37 @@
 
   code, pre {
     font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Headings get tight tracking */
+  h1, h2, h3 {
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Subtle shadows — depth via surface contrast + light border */
+  .shadow-card {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .shadow-card-hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .shadow-elevated {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   }
 }
 

@@ -13,6 +13,7 @@ import Competitors from "./pages/Competitors";
 import CompetitorContent from "./pages/CompetitorContent";
 import ContentPillars from "./pages/ContentPillars";
 import WeeklyBriefs from "./pages/WeeklyBriefs";
+import Carousels from "./pages/Carousels";
 import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -40,6 +41,7 @@ function ProtectedRoutes() {
         <Route path="/competitors" element={<Competitors />} />
         <Route path="/competitors/content" element={<CompetitorContent />} />
         <Route path="/pillars" element={<ContentPillars />} />
+        <Route path="/carousels" element={<Carousels />} />
         <Route path="/briefs" element={<WeeklyBriefs />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFound />} />

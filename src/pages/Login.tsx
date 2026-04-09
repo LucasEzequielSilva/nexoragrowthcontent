@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Waves, Loader2 } from 'lucide-react';
+import { Zap, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       if (isSignUp) {
         await signUp(email, password);
-        toast({ title: 'Account created!', description: 'Check your email for confirmation.' });
+        toast({ title: '¡Cuenta creada!', description: 'Revisá tu email para confirmar.' });
       } else {
         await signIn(email, password);
       }
@@ -36,11 +36,11 @@ export default function LoginPage() {
       <Card className="w-full max-w-md border-border">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
-            <Waves className="h-8 w-8 text-primary" />
+            <Zap className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Waves Content Engine</CardTitle>
-            <CardDescription className="mt-1">Your personal content operations hub</CardDescription>
+            <CardTitle className="text-2xl font-bold">Nexora Content Engine</CardTitle>
+            <CardDescription className="mt-1">Tu sistema de operación de contenido</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -54,7 +54,7 @@ export default function LoginPage() {
             />
             <Input
               type="password"
-              placeholder="Password"
+              placeholder="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -62,7 +62,7 @@ export default function LoginPage() {
             />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? 'Create Account' : 'Sign In'}
+              {isSignUp ? 'Crear Cuenta' : 'Iniciar Sesión'}
             </Button>
           </form>
           <div className="mt-4 text-center">
@@ -71,7 +71,7 @@ export default function LoginPage() {
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsSignUp(!isSignUp)}
             >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              {isSignUp ? '¿Ya tenés cuenta? Iniciá sesión' : '¿No tenés cuenta? Registrate'}
             </button>
           </div>
         </CardContent>

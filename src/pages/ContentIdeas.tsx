@@ -8,9 +8,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Search, Youtube, Linkedin, Twitter, FileText } from 'lucide-react';
+import { Plus, Search, Youtube, Linkedin, Twitter, FileText, Sparkles, Loader2, PenTool } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 
 const platformIcons: Record<string, any> = { youtube: Youtube, linkedin: Linkedin, twitter: Twitter };
 const statusBadgeColors: Record<string, string> = {
@@ -38,6 +39,8 @@ export default function ContentIdeas() {
   const [newStatus, setNewStatus] = useState('idea');
   const [newPriority, setNewPriority] = useState('medium');
   const [newType, setNewType] = useState('tutorial');
+  const [generatingIdea, setGeneratingIdea] = useState(false);
+  const [generatingDraft, setGeneratingDraft] = useState<string | null>(null);
 
   const fetchIdeas = async () => {
     const { data } = await supabase.from('content_ideas').select('*').order('created_at', { ascending: false });
@@ -65,9 +68,52 @@ export default function ContentIdeas() {
 
   const updateStatus = async (id: string, status: string) => {
     await supabase.from('content_ideas').update({ status }).eq('id', id);
-    toast({ title: `Status updated to ${status}` });
+    toast({ title: `Estado actualizado a ${status}` });
     fetchIdeas();
     if (selectedIdea?.id === id) setSelectedIdea({ ...selectedIdea, status });
+  };
+
+  const generateIdea = async () => {
+    setGeneratingIdea(true);
+    try {
+      const result = await api.generateIdea();
+      if (result.idea) {
+        const { error } = await supabase.from('content_ideas').insert({
+          title: result.idea.title,
+          description: result.idea.description || '',
+          key_message: result.idea.key_message || '',
+          content_type: result.idea.content_type || 'hot_take',
+          source: 'agent',
+          status: 'idea',
+          priority: 'medium',
+          platform: 'multi',
+        });
+        if (error) throw error;
+        toast({ title: 'Idea generada con AI', description: result.idea.title });
+        fetchIdeas();
+      }
+    } catch (err: any) {
+      toast({ title: 'Error al generar idea', description: err.message, variant: 'destructive' });
+    } finally {
+      setGeneratingIdea(false);
+    }
+  };
+
+  const generateDraft = async (ideaId: string) => {
+    setGeneratingDraft(ideaId);
+    try {
+      const result = await api.generateDraft(ideaId);
+      toast({ title: 'Borrador generado', description: 'El borrador fue guardado en la idea' });
+      fetchIdeas();
+      if (selectedIdea?.id === ideaId) {
+        const { data } = await supabase.from('content_ideas').select('*').eq('id', ideaId).single();
+        if (data) setSelectedIdea(data);
+      }
+    } catch (err: any) {
+      toast({ title: 'Error al generar borrador', description: err.message, variant: 'destructive' });
+    } finally {
+      setGeneratingDraft(null);
+    }
   };
 
   if (loading) return <div className="space-y-4"><Skeleton className="h-8 w-48" />{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div>;
@@ -78,26 +124,31 @@ export default function ContentIdeas() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">Content Ideas</h1>
-        <Button onClick={() => setShowNew(true)}><Plus className="mr-2 h-4 w-4" /> New Idea</Button>
+        <h1 className="text-2xl font-bold">Ideas de Contenido</h1>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={generateIdea} disabled={generatingIdea}>
+            {generatingIdea ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generando...</> : <><Sparkles className="mr-2 h-4 w-4" /> Generar con AI</>}
+          </Button>
+          <Button onClick={() => setShowNew(true)}><Plus className="mr-2 h-4 w-4" /> Nueva Idea</Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search ideas..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Buscar ideas..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="all">Todos los estados</SelectItem>
             {statuses.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={platformFilter} onValueChange={setPlatformFilter}>
           <SelectTrigger className="w-[140px]"><SelectValue placeholder="Platform" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Platforms</SelectItem>
+            <SelectItem value="all">Todas las plataformas</SelectItem>
             <SelectItem value="youtube">YouTube</SelectItem>
             <SelectItem value="linkedin">LinkedIn</SelectItem>
             <SelectItem value="twitter">X/Twitter</SelectItem>
@@ -108,7 +159,7 @@ export default function ContentIdeas() {
 
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <Card><CardContent className="p-8 text-center text-muted-foreground">No content ideas found. Create your first one!</CardContent></Card>
+          <Card><CardContent className="p-8 text-center text-muted-foreground">No hay ideas de contenido. ¡Creá la primera!</CardContent></Card>
         ) : filtered.map(idea => {
           const Icon = platformIcons[idea.platform] || FileText;
           return (
@@ -130,10 +181,10 @@ export default function ContentIdeas() {
       {/* New Idea Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent>
-          <DialogHeader><DialogTitle>New Content Idea</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Nueva Idea de Contenido</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <Input placeholder="Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
-            <Textarea placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
+            <Input placeholder="Título" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+            <Textarea placeholder="Descripción" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
             <div className="grid grid-cols-2 gap-3">
               <Select value={newPlatform} onValueChange={setNewPlatform}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -167,7 +218,7 @@ export default function ContentIdeas() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={createIdea} disabled={!newTitle} className="w-full">Create Idea</Button>
+            <Button onClick={createIdea} disabled={!newTitle} className="w-full">Crear Idea</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -188,11 +239,31 @@ export default function ContentIdeas() {
                 {selectedIdea.description && <p className="text-sm text-muted-foreground">{selectedIdea.description}</p>}
                 {selectedIdea.target_audience && <div><p className="text-xs text-muted-foreground">Target Audience</p><p className="text-sm">{selectedIdea.target_audience}</p></div>}
                 {selectedIdea.scheduled_date && <div><p className="text-xs text-muted-foreground">Scheduled</p><p className="text-sm">{selectedIdea.scheduled_date}</p></div>}
-                {nextStatus(selectedIdea.status) && (
-                  <Button className="w-full" onClick={() => updateStatus(selectedIdea.id, nextStatus(selectedIdea.status)!)}>
-                    Move to {nextStatus(selectedIdea.status)}
-                  </Button>
+                {selectedIdea.draft_content && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Borrador</p>
+                    <div className="bg-accent/50 rounded-md p-3 text-sm max-h-48 overflow-auto scrollbar-thin whitespace-pre-wrap">{selectedIdea.draft_content}</div>
+                  </div>
                 )}
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    className="flex-1"
+                    disabled={generatingDraft === selectedIdea.id}
+                    onClick={() => generateDraft(selectedIdea.id)}
+                  >
+                    {generatingDraft === selectedIdea.id ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generando borrador...</>
+                    ) : (
+                      <><PenTool className="mr-2 h-4 w-4" /> {selectedIdea.draft_content ? 'Re-generar borrador' : 'Generar borrador'}</>
+                    )}
+                  </Button>
+                  {nextStatus(selectedIdea.status) && (
+                    <Button className="flex-1" onClick={() => updateStatus(selectedIdea.id, nextStatus(selectedIdea.status)!)}>
+                      Mover a {nextStatus(selectedIdea.status)}
+                    </Button>
+                  )}
+                </div>
               </div>
             </DialogContent>
           </Dialog>

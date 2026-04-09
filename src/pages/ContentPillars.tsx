@@ -64,7 +64,7 @@ export default function ContentPillars() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Content Pillars</h1>
+        <h1 className="text-2xl font-bold">Pilares de Contenido</h1>
         <Button onClick={() => { setEditPillar(null); setForm({ name: '', description: '', color: '#6366f1', icon: 'Hammer' }); setShowNew(true); }}>
           <Plus className="mr-2 h-4 w-4" /> New Pillar
         </Button>
@@ -97,10 +97,10 @@ export default function ContentPillars() {
 
       <Dialog open={showNew} onOpenChange={(o) => { setShowNew(o); if (!o) setEditPillar(null); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editPillar ? 'Edit Pillar' : 'New Pillar'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editPillar ? 'Editar Pilar' : 'Nuevo Pilar'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <Input placeholder="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <Textarea placeholder="Descripción" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Color</label>
@@ -122,8 +122,8 @@ export default function ContentPillars() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button onClick={savePillar} disabled={!form.name} className="flex-1">{editPillar ? 'Update' : 'Create'}</Button>
-              {editPillar && <Button variant="destructive" onClick={() => deletePillar(editPillar.id)}>Delete</Button>}
+              <Button onClick={savePillar} disabled={!form.name} className="flex-1">{editPillar ? 'Actualizar' : 'Crear'}</Button>
+              {editPillar && <Button variant="destructive" onClick={() => deletePillar(editPillar.id)}>Eliminar</Button>}
             </div>
           </div>
         </DialogContent>

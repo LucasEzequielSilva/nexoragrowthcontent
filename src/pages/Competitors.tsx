@@ -7,11 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search, Youtube, Linkedin, Twitter, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 
 const platformIcons: Record<string, any> = { youtube: Youtube, linkedin: Linkedin, twitter: Twitter };
+const tierConfig: Record<string, { label: string; class: string }> = {
+  tier_1: { label: 'Tier 1', class: 'bg-primary/20 text-primary border-primary/30' },
+  tier_2: { label: 'Tier 2', class: 'bg-status-drafting/20 text-status-drafting border-status-drafting/30' },
+  tier_3: { label: 'Tier 3', class: 'bg-muted text-muted-foreground border-muted-foreground/30' },
+};
 
 function formatCount(n: number): string {
   if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
@@ -26,9 +32,10 @@ export default function Competitors() {
   const [competitors, setCompetitors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [tierFilter, setTierFilter] = useState('all');
   const [selected, setSelected] = useState<any | null>(null);
   const [showNew, setShowNew] = useState(false);
-  const [form, setForm] = useState({ name: '', agency_name: '', content_style: '', what_they_sell: '', frequency: '', notes: '' });
+  const [form, setForm] = useState({ name: '', agency_name: '', content_style: '', what_they_sell: '', frequency: '', notes: '', tier: 'tier_1' });
 
   const fetchCompetitors = async () => {
     const { data } = await supabase.from('competitors').select('*').order('created_at', { ascending: false });
@@ -38,16 +45,18 @@ export default function Competitors() {
 
   useEffect(() => { fetchCompetitors(); }, []);
 
-  const filtered = competitors.filter(c =>
-    !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.agency_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = competitors.filter(c => {
+    if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.agency_name?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (tierFilter !== 'all' && c.tier !== tierFilter) return false;
+    return true;
+  });
 
   const createCompetitor = async () => {
     const { error } = await supabase.from('competitors').insert(form);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Competitor added!' });
     setShowNew(false);
-    setForm({ name: '', agency_name: '', content_style: '', what_they_sell: '', frequency: '', notes: '' });
+    setForm({ name: '', agency_name: '', content_style: '', what_they_sell: '', frequency: '', notes: '', tier: 'tier_1' });
     fetchCompetitors();
   };
 
@@ -56,13 +65,24 @@ export default function Competitors() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">Competitors</h1>
-        <Button onClick={() => setShowNew(true)}><Plus className="mr-2 h-4 w-4" /> Add Competitor</Button>
+        <h1 className="text-2xl font-bold">Competidores</h1>
+        <Button onClick={() => setShowNew(true)}><Plus className="mr-2 h-4 w-4" /> Agregar Competidor</Button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search competitors..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar competidores..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={tierFilter} onValueChange={setTierFilter}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Tier" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Tiers</SelectItem>
+            <SelectItem value="tier_1">Tier 1</SelectItem>
+            <SelectItem value="tier_2">Tier 2</SelectItem>
+            <SelectItem value="tier_3">Tier 3</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -77,8 +97,13 @@ export default function Competitors() {
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Users className="h-5 w-5 text-primary" />
                     </div>
-                    <div>
-                      <CardTitle className="text-base">{comp.name}</CardTitle>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-base">{comp.name}</CardTitle>
+                        {comp.tier && tierConfig[comp.tier] && (
+                          <Badge className={`${tierConfig[comp.tier].class} border text-[10px] px-1.5 py-0`}>{tierConfig[comp.tier].label}</Badge>
+                        )}
+                      </div>
                       {comp.agency_name && <CardDescription className="text-xs">{comp.agency_name}</CardDescription>}
                     </div>
                   </div>
@@ -118,7 +143,12 @@ export default function Competitors() {
                     <Users className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <span>{selected.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{selected.name}</span>
+                      {selected.tier && tierConfig[selected.tier] && (
+                        <Badge className={`${tierConfig[selected.tier].class} border text-[10px] px-1.5 py-0`}>{tierConfig[selected.tier].label}</Badge>
+                      )}
+                    </div>
                     {selected.agency_name && <p className="text-sm font-normal text-muted-foreground">{selected.agency_name}</p>}
                   </div>
                 </DialogTitle>
@@ -137,10 +167,10 @@ export default function Competitors() {
                     );
                   })}
                 </div>
-                {selected.content_style && <div><p className="text-xs text-muted-foreground mb-1">Content Style</p><p className="text-sm">{selected.content_style}</p></div>}
-                {selected.what_they_sell && <div><p className="text-xs text-muted-foreground mb-1">What They Sell</p><p className="text-sm">{selected.what_they_sell}</p></div>}
-                {selected.frequency && <div><p className="text-xs text-muted-foreground mb-1">Frequency</p><p className="text-sm">{selected.frequency}</p></div>}
-                {selected.notes && <div><p className="text-xs text-muted-foreground mb-1">Notes</p><p className="text-sm">{selected.notes}</p></div>}
+                {selected.content_style && <div><p className="text-xs text-muted-foreground mb-1">Estilo de contenido</p><p className="text-sm">{selected.content_style}</p></div>}
+                {selected.what_they_sell && <div><p className="text-xs text-muted-foreground mb-1">Qué venden</p><p className="text-sm">{selected.what_they_sell}</p></div>}
+                {selected.frequency && <div><p className="text-xs text-muted-foreground mb-1">Frecuencia</p><p className="text-sm">{selected.frequency}</p></div>}
+                {selected.notes && <div><p className="text-xs text-muted-foreground mb-1">Notas</p><p className="text-sm">{selected.notes}</p></div>}
               </div>
             </>
           )}
@@ -150,15 +180,23 @@ export default function Competitors() {
       {/* New Competitor Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Competitor</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Agregar Competidor</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <Input placeholder="Agency Name" value={form.agency_name} onChange={(e) => setForm({ ...form, agency_name: e.target.value })} />
-            <Input placeholder="Content Style" value={form.content_style} onChange={(e) => setForm({ ...form, content_style: e.target.value })} />
-            <Input placeholder="What They Sell" value={form.what_they_sell} onChange={(e) => setForm({ ...form, what_they_sell: e.target.value })} />
-            <Input placeholder="Frequency" value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })} />
-            <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            <Button onClick={createCompetitor} disabled={!form.name} className="w-full">Add Competitor</Button>
+            <Input placeholder="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <Input placeholder="Agencia / Proyecto" value={form.agency_name} onChange={(e) => setForm({ ...form, agency_name: e.target.value })} />
+            <Input placeholder="Estilo de contenido" value={form.content_style} onChange={(e) => setForm({ ...form, content_style: e.target.value })} />
+            <Input placeholder="Qué venden" value={form.what_they_sell} onChange={(e) => setForm({ ...form, what_they_sell: e.target.value })} />
+            <Input placeholder="Frecuencia" value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })} />
+            <Textarea placeholder="Notas" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <Select value={form.tier} onValueChange={(v) => setForm({ ...form, tier: v })}>
+              <SelectTrigger><SelectValue placeholder="Tier" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tier_1">Tier 1 — Competidor directo</SelectItem>
+                <SelectItem value="tier_2">Tier 2 — Referencia de formato</SelectItem>
+                <SelectItem value="tier_3">Tier 3 — Referencia tangencial</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={createCompetitor} disabled={!form.name} className="w-full">Agregar Competidor</Button>
           </div>
         </DialogContent>
       </Dialog>
