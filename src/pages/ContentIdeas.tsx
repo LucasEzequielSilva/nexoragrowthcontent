@@ -81,9 +81,11 @@ export default function ContentIdeas() {
   };
 
   const updateStatus = async (id: string, status: string) => {
-    await supabase.from('content_ideas').update({ status }).eq('id', id);
-    fetchIdeas();
-    if (selectedIdea?.id === id) setSelectedIdea({ ...selectedIdea, status });
+    // Optimistic: move instantly in UI
+    setIdeas(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+    if (selectedIdea?.id === id) setSelectedIdea((prev: any) => prev ? { ...prev, status } : prev);
+    // Sync with DB in background
+    supabase.from('content_ideas').update({ status }).eq('id', id);
   };
 
   const updateIdea = async (id: string, updates: Record<string, any>) => {
