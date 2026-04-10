@@ -67,16 +67,16 @@ export default function ContentIdeas() {
     return true;
   });
 
-  const createIdea = async (status?: string) => {
-    const title = newTitle || 'Nueva idea';
+  const createIdea = async () => {
+    if (!newTitle.trim()) { toast({ title: 'Ponele un título', variant: 'destructive' }); return; }
     const { error } = await supabase.from('content_ideas').insert({
-      title, description: newDesc, platform: newPlatform,
-      status: status || newStatus, priority: newPriority, content_type: newType,
+      title: newTitle.trim(), description: newDesc, platform: newPlatform,
+      status: newStatus, priority: newPriority, content_type: newType,
     });
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Idea creada' });
     setShowNew(false);
-    setNewTitle(''); setNewDesc('');
+    setNewTitle(''); setNewDesc(''); setNewPriority('medium'); setNewType('tutorial'); setNewPlatform('multi');
     fetchIdeas();
   };
 
@@ -126,14 +126,23 @@ export default function ContentIdeas() {
   };
 
   // Drag & Drop
-  const onDragStart = (id: string) => { dragIdRef.current = id; };
-  const onDragOver = (e: React.DragEvent, status: string) => { e.preventDefault(); setDragOverColumn(status); };
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const onDragStart = (e: React.DragEvent, id: string) => {
+    dragIdRef.current = id;
+    setDraggingId(id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+  };
+  const onDragEnd = () => { setDraggingId(null); setDragOverColumn(null); };
+  const onDragOver = (e: React.DragEvent, status: string) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColumn(status); };
   const onDragLeave = () => { setDragOverColumn(null); };
-  const onDrop = (status: string) => {
+  const onDrop = (e: React.DragEvent, status: string) => {
+    e.preventDefault();
     if (dragIdRef.current) {
       updateStatus(dragIdRef.current, status);
       dragIdRef.current = null;
     }
+    setDraggingId(null);
     setDragOverColumn(null);
   };
 
@@ -207,7 +216,7 @@ export default function ContentIdeas() {
                 <div
                   onDragOver={(e) => onDragOver(e, status)}
                   onDragLeave={onDragLeave}
-                  onDrop={() => onDrop(status)}
+                  onDrop={(e) => onDrop(e, status)}
                   className={`flex flex-col gap-2 flex-1 min-h-[160px] p-2 rounded-2xl transition-all duration-200 ${isDragOver ? 'bg-primary/5 border-2 border-dashed border-primary/30' : 'bg-muted/25 border border-dashed border-border/50'}`}
                 >
                   {columnIdeas.map(idea => {
@@ -216,9 +225,10 @@ export default function ContentIdeas() {
                       <div
                         key={idea.id}
                         draggable
-                        onDragStart={() => onDragStart(idea.id)}
+                        onDragStart={(e) => onDragStart(e, idea.id)}
+                        onDragEnd={onDragEnd}
                         onClick={() => setSelectedIdea(idea)}
-                        className="bg-card border border-black/[0.12] rounded-xl p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-200 cursor-grab active:cursor-grabbing active:scale-[0.98] group"
+                        className={`bg-card border border-black/[0.12] rounded-xl p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-200 cursor-grab active:cursor-grabbing group ${draggingId === idea.id ? 'opacity-40 scale-95' : ''}`}
                       >
                         <p className="text-[13px] font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">{idea.title}</p>
                         <div className="flex items-center gap-2 mt-2.5">
@@ -293,7 +303,7 @@ export default function ContentIdeas() {
         <DialogContent>
           <DialogHeader><DialogTitle>Nueva Idea de Contenido</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <Input placeholder="Título" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+            <Input placeholder="Título" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} autoFocus />
             <Textarea placeholder="Descripción (opcional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={2} />
             <div className="grid grid-cols-2 gap-3">
               <Select value={newPlatform} onValueChange={setNewPlatform}>
