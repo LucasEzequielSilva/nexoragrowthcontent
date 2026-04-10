@@ -127,25 +127,77 @@ export default function ContentIdeas() {
     } finally { setGeneratingDraft(null); }
   };
 
-  // Drag & Drop
+  // Drag & Drop with reorder
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ status: string; index: number } | null>(null);
+
   const onDragStart = (e: React.DragEvent, id: string) => {
     dragIdRef.current = id;
     setDraggingId(id);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', id);
   };
-  const onDragEnd = () => { setDraggingId(null); setDragOverColumn(null); };
-  const onDragOver = (e: React.DragEvent, status: string) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColumn(status); };
-  const onDragLeave = () => { setDragOverColumn(null); };
-  const onDrop = (e: React.DragEvent, status: string) => {
+  const onDragEnd = () => { setDraggingId(null); setDragOverColumn(null); setDropTarget(null); };
+
+  const onCardDragOver = (e: React.DragEvent, status: string, index: number) => {
     e.preventDefault();
-    if (dragIdRef.current) {
-      updateStatus(dragIdRef.current, status);
-      dragIdRef.current = null;
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverColumn(status);
+    setDropTarget({ status, index });
+  };
+
+  const onColumnDragOver = (e: React.DragEvent, status: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverColumn(status);
+    // Only set dropTarget to end if not already over a card
+    if (!dropTarget || dropTarget.status !== status) {
+      const columnIdeas = ideas.filter(i => i.status === status);
+      setDropTarget({ status, index: columnIdeas.length });
     }
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    // Only clear if leaving the column entirely
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const { clientX, clientY } = e;
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+      setDragOverColumn(null);
+      setDropTarget(null);
+    }
+  };
+
+  const onDrop = (e: React.DragEvent, status: string, targetIndex?: number) => {
+    e.preventDefault();
+    if (!dragIdRef.current) return;
+
+    const draggedId = dragIdRef.current;
+    const draggedIdea = ideas.find(i => i.id === draggedId);
+    if (!draggedIdea) return;
+
+    // Remove from current position
+    const newIdeas = ideas.filter(i => i.id !== draggedId);
+    const updatedIdea = { ...draggedIdea, status };
+
+    // Find insert position in the target column
+    const columnIdeas = newIdeas.filter(i => i.status === status);
+    const insertIdx = targetIndex !== undefined ? Math.min(targetIndex, columnIdeas.length) : columnIdeas.length;
+
+    // Build new array: all non-target-column ideas + target column with inserted idea
+    const otherIdeas = newIdeas.filter(i => i.status !== status);
+    const newColumn = [...columnIdeas];
+    newColumn.splice(insertIdx, 0, updatedIdea);
+    setIdeas([...otherIdeas, ...newColumn]);
+
+    // Sync status change with DB
+    if (draggedIdea.status !== status) {
+      supabase.from('content_ideas').update({ status }).eq('id', draggedId);
+    }
+
+    dragIdRef.current = null;
     setDraggingId(null);
     setDragOverColumn(null);
+    setDropTarget(null);
   };
 
   const nextStatus = (s: string) => { const i = statuses.indexOf(s); return i < statuses.length - 1 ? statuses[i + 1] : null; };
@@ -216,37 +268,54 @@ export default function ContentIdeas() {
 
                 {/* Column drop zone */}
                 <div
-                  onDragOver={(e) => onDragOver(e, status)}
+                  onDragOver={(e) => onColumnDragOver(e, status)}
                   onDragLeave={onDragLeave}
-                  onDrop={(e) => onDrop(e, status)}
-                  className={`flex flex-col gap-2 flex-1 min-h-[160px] p-2 rounded-2xl transition-all duration-200 ${isDragOver ? 'bg-primary/5 border-2 border-dashed border-primary/30' : 'bg-muted/25 border border-dashed border-border/50'}`}
+                  onDrop={(e) => onDrop(e, status, columnIdeas.length)}
+                  className={`flex flex-col flex-1 min-h-[200px] p-2 rounded-2xl transition-all duration-200 ${isDragOver ? 'bg-primary/5 border-2 border-dashed border-primary/30' : 'bg-muted/25 border border-dashed border-border/50'}`}
                 >
-                  {columnIdeas.map(idea => {
+                  {columnIdeas.map((idea, idx) => {
                     const IdeaIcon = platformIcons[idea.platform] || DocumentTextIcon;
+                    const showIndicatorAbove = dropTarget?.status === status && dropTarget.index === idx && draggingId !== idea.id;
                     return (
-                      <div
-                        key={idea.id}
-                        draggable
-                        onDragStart={(e) => onDragStart(e, idea.id)}
-                        onDragEnd={onDragEnd}
-                        onClick={() => setSelectedIdea(idea)}
-                        className={`bg-card border border-black/[0.12] rounded-xl p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-200 cursor-grab active:cursor-grabbing group ${draggingId === idea.id ? 'opacity-40 scale-95' : ''}`}
-                      >
-                        <p className="text-[13px] font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">{idea.title}</p>
-                        <div className="flex items-center gap-2 mt-2.5">
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                            <IdeaIcon className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-                            <span className="text-[11px] text-muted-foreground/50 capitalize truncate">{idea.platform}</span>
+                      <div key={idea.id}>
+                        {/* Drop indicator line */}
+                        {showIndicatorAbove && (
+                          <div className="h-1 mx-1 mb-1 rounded-full bg-primary/60 transition-all duration-150" />
+                        )}
+                        <div
+                          draggable
+                          onDragStart={(e) => onDragStart(e, idea.id)}
+                          onDragEnd={onDragEnd}
+                          onDragOver={(e) => {
+                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            const midY = rect.top + rect.height / 2;
+                            const insertIdx = e.clientY < midY ? idx : idx + 1;
+                            onCardDragOver(e, status, insertIdx);
+                          }}
+                          onDrop={(e) => onDrop(e, status, dropTarget?.index ?? idx)}
+                          onClick={() => setSelectedIdea(idea)}
+                          className={`bg-card border border-black/[0.12] rounded-xl p-3.5 mb-2 shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-150 cursor-grab active:cursor-grabbing group ${draggingId === idea.id ? 'opacity-30 scale-[0.96]' : ''}`}
+                        >
+                          <p className="text-[13px] font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">{idea.title}</p>
+                          <div className="flex items-center gap-2 mt-2.5">
+                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                              <IdeaIcon className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                              <span className="text-[11px] text-muted-foreground/50 capitalize truncate">{idea.platform}</span>
+                            </div>
+                            {idea.priority === 'high' && (
+                              <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md">Alta</span>
+                            )}
+                            {idea.priority === 'medium' && (
+                              <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">Media</span>
+                            )}
                           </div>
-                          {idea.priority === 'high' && (
-                            <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md">Alta</span>
-                          )}
-                          {idea.priority === 'medium' && (
-                            <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">Media</span>
+                          {idea.scheduled_date && (
+                            <p className="text-[10px] text-muted-foreground/40 mt-1.5">{idea.scheduled_date}</p>
                           )}
                         </div>
-                        {idea.scheduled_date && (
-                          <p className="text-[10px] text-muted-foreground/40 mt-1.5">{idea.scheduled_date}</p>
+                        {/* Drop indicator after last card */}
+                        {dropTarget?.status === status && dropTarget.index === idx + 1 && idx === columnIdeas.length - 1 && draggingId !== idea.id && (
+                          <div className="h-1 mx-1 mt-0 mb-1 rounded-full bg-primary/60 transition-all duration-150" />
                         )}
                       </div>
                     );
