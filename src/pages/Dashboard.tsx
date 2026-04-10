@@ -112,38 +112,54 @@ export default function Dashboard() {
         })}
       </motion.div>
 
-      {/* Pipeline — Step cards */}
+      {/* Pipeline — Kanban */}
       <motion.div variants={item}>
-        <Card>
-          <CardHeader className="pb-4 flex flex-row items-center justify-between">
-            <CardTitle className="text-[15px] font-semibold">Pipeline de Contenido</CardTitle>
-            <Link to="/ideas">
-              <Button variant="ghost" size="sm" className="text-[13px] text-muted-foreground">Ver todo</Button>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {statuses.map((status, i) => {
-                const cfg = statusConfig[status];
-                const count = statusCounts[status] || 0;
-                return (
-                  <div key={status} className="flex items-center gap-2.5">
-                    <div className={`flex flex-col items-center justify-center min-w-[110px] px-5 py-4 rounded-2xl transition-all duration-200 ${count > 0 ? `${cfg.bg} border border-transparent` : 'bg-muted/40 border border-dashed border-border'}`}>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                        <span className={`text-[12px] font-medium ${cfg.text}`}>{cfg.label}</span>
-                      </div>
-                      <p className="text-2xl font-bold tabular-nums">{count}</p>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[15px] font-semibold">Pipeline de Contenido</h2>
+          <Link to="/ideas">
+            <Button variant="ghost" size="sm" className="text-[13px] text-muted-foreground">Ver todo</Button>
+          </Link>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+          {statuses.map((status) => {
+            const cfg = statusConfig[status];
+            const columnIdeas = ideas.filter(i => i.status === status);
+            const Icon = platformIcons[columnIdeas[0]?.platform] || DocumentTextIcon;
+            return (
+              <div key={status} className="flex flex-col min-w-[185px] w-[185px] shrink-0">
+                {/* Column header */}
+                <div className="flex items-center gap-2 mb-2.5 px-1">
+                  <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                  <span className={`text-[13px] font-semibold ${cfg.text}`}>{cfg.label}</span>
+                  <span className="text-[12px] text-muted-foreground/50 tabular-nums ml-auto">{columnIdeas.length}</span>
+                </div>
+                {/* Column body */}
+                <div className="flex flex-col gap-2 min-h-[120px] p-1.5 rounded-xl bg-muted/30 border border-dashed border-border/60">
+                  {columnIdeas.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <span className="text-[12px] text-muted-foreground/30">Vacío</span>
                     </div>
-                    {i < statuses.length - 1 && (
-                      <ArrowRightIcon className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                  ) : columnIdeas.slice(0, 4).map(idea => {
+                    const IdeaIcon = platformIcons[idea.platform] || DocumentTextIcon;
+                    return (
+                      <div key={idea.id} className="bg-card border border-black/[0.12] rounded-xl p-3 shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-200 cursor-pointer group">
+                        <p className="text-[13px] font-medium text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors">{idea.title}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <IdeaIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
+                          {idea.priority === 'high' && <span className="text-[10px] font-semibold text-red-500">Alta</span>}
+                          {idea.scheduled_date && <span className="text-[10px] text-muted-foreground/50 ml-auto">{idea.scheduled_date}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {columnIdeas.length > 4 && (
+                    <span className="text-[11px] text-muted-foreground/40 text-center py-1">+{columnIdeas.length - 4} más</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </motion.div>
 
       {/* Two Column */}
