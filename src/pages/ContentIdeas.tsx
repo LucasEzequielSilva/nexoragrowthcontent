@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,33 +6,21 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import {
   PlusIcon, MagnifyingGlassIcon, SparklesIcon,
   PlayIcon, ShareIcon, PaperAirplaneIcon, DocumentTextIcon,
   ViewColumnsIcon, ListBulletIcon,
 } from '@heroicons/react/24/solid';
-import { Loader2, PenTool } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { KanbanBoard, kanbanStatuses, statusConfig } from '@/components/KanbanBoard';
 import type { ComponentType, SVGProps } from 'react';
 
 type HeroIcon = ComponentType<SVGProps<SVGSVGElement>>;
-
 const platformIcons: Record<string, HeroIcon> = { youtube: PlayIcon, linkedin: ShareIcon, twitter: PaperAirplaneIcon };
-
-const statusConfig: Record<string, { label: string; dot: string; text: string; badge: 'secondary' | 'info' | 'warning' | 'default' | 'violet' | 'success' }> = {
-  idea:        { label: 'Idea',         dot: 'bg-slate-400',   text: 'text-slate-500',  badge: 'secondary' },
-  researching: { label: 'Investigación', dot: 'bg-blue-500',   text: 'text-blue-600',   badge: 'info' },
-  drafting:    { label: 'Borrador',     dot: 'bg-amber-500',   text: 'text-amber-600',  badge: 'warning' },
-  review:      { label: 'Revisión',     dot: 'bg-orange-500',  text: 'text-orange-600', badge: 'default' },
-  scheduled:   { label: 'Programado',   dot: 'bg-violet-500',  text: 'text-violet-600', badge: 'violet' },
-  published:   { label: 'Publicado',    dot: 'bg-emerald-500', text: 'text-emerald-600', badge: 'success' },
-};
-
-const statuses = Object.keys(statusConfig);
 const priorityLabels: Record<string, string> = { high: 'Alta', medium: 'Media', low: 'Baja' };
 
 export default function ContentIdeas() {
@@ -41,7 +29,6 @@ export default function ContentIdeas() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
-  const [selectedIdea, setSelectedIdea] = useState<any | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -50,9 +37,6 @@ export default function ContentIdeas() {
   const [newPriority, setNewPriority] = useState('medium');
   const [newType, setNewType] = useState('tutorial');
   const [generatingIdea, setGeneratingIdea] = useState(false);
-  const [generatingDraft, setGeneratingDraft] = useState<string | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
-  const dragIdRef = useRef<string | null>(null);
 
   const fetchIdeas = async () => {
     const { data } = await supabase.from('content_ideas').select('*').order('created_at', { ascending: false });
@@ -80,20 +64,6 @@ export default function ContentIdeas() {
     fetchIdeas();
   };
 
-  const updateStatus = async (id: string, status: string) => {
-    // Optimistic: move instantly in UI
-    setIdeas(prev => prev.map(i => i.id === id ? { ...i, status } : i));
-    if (selectedIdea?.id === id) setSelectedIdea((prev: any) => prev ? { ...prev, status } : prev);
-    // Sync with DB in background
-    supabase.from('content_ideas').update({ status }).eq('id', id);
-  };
-
-  const updateIdea = async (id: string, updates: Record<string, any>) => {
-    await supabase.from('content_ideas').update(updates).eq('id', id);
-    fetchIdeas();
-    if (selectedIdea?.id === id) setSelectedIdea({ ...selectedIdea, ...updates });
-  };
-
   const generateIdea = async () => {
     setGeneratingIdea(true);
     try {
@@ -111,96 +81,6 @@ export default function ContentIdeas() {
       toast({ title: 'Error al generar idea', description: err.message, variant: 'destructive' });
     } finally { setGeneratingIdea(false); }
   };
-
-  const generateDraft = async (ideaId: string) => {
-    setGeneratingDraft(ideaId);
-    try {
-      await api.generateDraft(ideaId);
-      toast({ title: 'Borrador generado' });
-      fetchIdeas();
-      if (selectedIdea?.id === ideaId) {
-        const { data } = await supabase.from('content_ideas').select('*').eq('id', ideaId).single();
-        if (data) setSelectedIdea(data);
-      }
-    } catch (err: any) {
-      toast({ title: 'Error al generar borrador', description: err.message, variant: 'destructive' });
-    } finally { setGeneratingDraft(null); }
-  };
-
-  // Drag & Drop with reorder
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<{ status: string; index: number } | null>(null);
-
-  const onDragStart = (e: React.DragEvent, id: string) => {
-    dragIdRef.current = id;
-    setDraggingId(id);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', id);
-  };
-  const onDragEnd = () => { setDraggingId(null); setDragOverColumn(null); setDropTarget(null); };
-
-  const onCardDragOver = (e: React.DragEvent, status: string, index: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverColumn(status);
-    setDropTarget({ status, index });
-  };
-
-  const onColumnDragOver = (e: React.DragEvent, status: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverColumn(status);
-    // Only set dropTarget to end if not already over a card
-    if (!dropTarget || dropTarget.status !== status) {
-      const columnIdeas = ideas.filter(i => i.status === status);
-      setDropTarget({ status, index: columnIdeas.length });
-    }
-  };
-  const onDragLeave = (e: React.DragEvent) => {
-    // Only clear if leaving the column entirely
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const { clientX, clientY } = e;
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
-      setDragOverColumn(null);
-      setDropTarget(null);
-    }
-  };
-
-  const onDrop = (e: React.DragEvent, status: string, targetIndex?: number) => {
-    e.preventDefault();
-    if (!dragIdRef.current) return;
-
-    const draggedId = dragIdRef.current;
-    const draggedIdea = ideas.find(i => i.id === draggedId);
-    if (!draggedIdea) return;
-
-    // Remove from current position
-    const newIdeas = ideas.filter(i => i.id !== draggedId);
-    const updatedIdea = { ...draggedIdea, status };
-
-    // Find insert position in the target column
-    const columnIdeas = newIdeas.filter(i => i.status === status);
-    const insertIdx = targetIndex !== undefined ? Math.min(targetIndex, columnIdeas.length) : columnIdeas.length;
-
-    // Build new array: all non-target-column ideas + target column with inserted idea
-    const otherIdeas = newIdeas.filter(i => i.status !== status);
-    const newColumn = [...columnIdeas];
-    newColumn.splice(insertIdx, 0, updatedIdea);
-    setIdeas([...otherIdeas, ...newColumn]);
-
-    // Sync status change with DB
-    if (draggedIdea.status !== status) {
-      supabase.from('content_ideas').update({ status }).eq('id', draggedId);
-    }
-
-    dragIdRef.current = null;
-    setDraggingId(null);
-    setDragOverColumn(null);
-    setDropTarget(null);
-  };
-
-  const nextStatus = (s: string) => { const i = statuses.indexOf(s); return i < statuses.length - 1 ? statuses[i + 1] : null; };
 
   if (loading) return (
     <div className="space-y-4 max-w-[1200px]">
@@ -222,7 +102,7 @@ export default function ContentIdeas() {
             {generatingIdea ? <Loader2 className="h-4 w-4 animate-spin" /> : <SparklesIcon className="h-4 w-4" />}
             {generatingIdea ? 'Generando...' : 'Generar con AI'}
           </Button>
-          <Button onClick={() => setShowNew(true)} size="sm" className="gap-1.5">
+          <Button onClick={() => { setNewStatus('idea'); setShowNew(true); }} size="sm" className="gap-1.5">
             <PlusIcon className="h-4 w-4" /> Nueva Idea
           </Button>
         </div>
@@ -250,89 +130,15 @@ export default function ContentIdeas() {
         </div>
       </div>
 
-      {/* ===== KANBAN VIEW ===== */}
+      {/* ===== KANBAN VIEW (shared component) ===== */}
       {view === 'kanban' && (
-        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-thin">
-          {statuses.map((status) => {
-            const cfg = statusConfig[status];
-            const columnIdeas = filtered.filter(i => i.status === status);
-            const isDragOver = dragOverColumn === status;
-            return (
-              <div key={status} className="flex flex-col min-w-[220px] w-[220px] shrink-0">
-                {/* Column header */}
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
-                  <span className={`text-[13px] font-semibold ${cfg.text}`}>{cfg.label}</span>
-                  <span className="text-[12px] text-muted-foreground/40 tabular-nums ml-auto">{columnIdeas.length}</span>
-                </div>
-
-                {/* Column drop zone */}
-                <div
-                  onDragOver={(e) => onColumnDragOver(e, status)}
-                  onDragLeave={onDragLeave}
-                  onDrop={(e) => onDrop(e, status, columnIdeas.length)}
-                  className={`flex flex-col flex-1 min-h-[200px] p-2 rounded-2xl transition-all duration-200 ${isDragOver ? 'bg-primary/5 border-2 border-dashed border-primary/30' : 'bg-muted/25 border border-dashed border-border/50'}`}
-                >
-                  {columnIdeas.map((idea, idx) => {
-                    const IdeaIcon = platformIcons[idea.platform] || DocumentTextIcon;
-                    const showIndicatorAbove = dropTarget?.status === status && dropTarget.index === idx && draggingId !== idea.id;
-                    return (
-                      <div key={idea.id}>
-                        {/* Drop indicator line */}
-                        {showIndicatorAbove && (
-                          <div className="h-1 mx-1 mb-1 rounded-full bg-primary/60 transition-all duration-150" />
-                        )}
-                        <div
-                          draggable
-                          onDragStart={(e) => onDragStart(e, idea.id)}
-                          onDragEnd={onDragEnd}
-                          onDragOver={(e) => {
-                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                            const midY = rect.top + rect.height / 2;
-                            const insertIdx = e.clientY < midY ? idx : idx + 1;
-                            onCardDragOver(e, status, insertIdx);
-                          }}
-                          onDrop={(e) => onDrop(e, status, dropTarget?.index ?? idx)}
-                          onClick={() => setSelectedIdea(idea)}
-                          className={`bg-card border border-black/[0.12] rounded-xl p-3.5 mb-2 shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-150 cursor-grab active:cursor-grabbing group ${draggingId === idea.id ? 'opacity-30 scale-[0.96]' : ''}`}
-                        >
-                          <p className="text-[13px] font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">{idea.title}</p>
-                          <div className="flex items-center gap-2 mt-2.5">
-                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                              <IdeaIcon className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-                              <span className="text-[11px] text-muted-foreground/50 capitalize truncate">{idea.platform}</span>
-                            </div>
-                            {idea.priority === 'high' && (
-                              <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md">Alta</span>
-                            )}
-                            {idea.priority === 'medium' && (
-                              <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">Media</span>
-                            )}
-                          </div>
-                          {idea.scheduled_date && (
-                            <p className="text-[10px] text-muted-foreground/40 mt-1.5">{idea.scheduled_date}</p>
-                          )}
-                        </div>
-                        {/* Drop indicator after last card */}
-                        {dropTarget?.status === status && dropTarget.index === idx + 1 && idx === columnIdeas.length - 1 && draggingId !== idea.id && (
-                          <div className="h-1 mx-1 mt-0 mb-1 rounded-full bg-primary/60 transition-all duration-150" />
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* Quick add */}
-                  <button
-                    onClick={() => { setNewStatus(status); setShowNew(true); }}
-                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-border/40 text-[12px] text-muted-foreground/40 hover:text-muted-foreground hover:border-border hover:bg-card/50 transition-all duration-200"
-                  >
-                    <PlusIcon className="h-3.5 w-3.5" /> Agregar
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <KanbanBoard
+          ideas={filtered}
+          setIdeas={setIdeas}
+          columnWidth={220}
+          showQuickAdd
+          onQuickAdd={(status) => { setNewStatus(status); setShowNew(true); }}
+        />
       )}
 
       {/* ===== LIST VIEW ===== */}
@@ -349,7 +155,6 @@ export default function ContentIdeas() {
             return (
               <div
                 key={idea.id}
-                onClick={() => setSelectedIdea(idea)}
                 className="flex items-center gap-3.5 p-3.5 bg-card border border-black/[0.12] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-200 cursor-pointer group"
               >
                 <div className="w-9 h-9 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
@@ -357,10 +162,10 @@ export default function ContentIdeas() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-medium truncate group-hover:text-primary transition-colors">{idea.title}</p>
-                  <p className="text-[12px] text-muted-foreground/50 capitalize">{idea.content_type?.replace('_', ' ')} · {idea.platform}</p>
+                  <p className="text-[12px] text-muted-foreground/50 capitalize">{idea.content_type?.replace(/_/g, ' ')} · {idea.platform}</p>
                 </div>
                 <Badge variant={cfg.badge} className="shrink-0">{cfg.label}</Badge>
-                <span className={`text-[12px] font-medium capitalize ${idea.priority === 'high' ? 'text-red-500' : idea.priority === 'medium' ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                <span className={`text-[12px] font-medium ${idea.priority === 'high' ? 'text-red-500' : idea.priority === 'medium' ? 'text-amber-600' : 'text-muted-foreground'}`}>
                   {priorityLabels[idea.priority] || idea.priority}
                 </span>
               </div>
@@ -405,163 +210,14 @@ export default function ContentIdeas() {
               <Select value={newStatus} onValueChange={setNewStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {statuses.map(s => <SelectItem key={s} value={s}>{statusConfig[s].label}</SelectItem>)}
+                  {kanbanStatuses.map(s => <SelectItem key={s} value={s}>{statusConfig[s].label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => createIdea()} disabled={!newTitle} className="w-full">Crear Idea</Button>
+            <Button onClick={createIdea} disabled={!newTitle} className="w-full">Crear Idea</Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* ===== DETAIL SHEET (right panel) ===== */}
-      <Sheet open={!!selectedIdea} onOpenChange={() => setSelectedIdea(null)}>
-        <SheetContent className="sm:max-w-md overflow-y-auto scrollbar-thin">
-          {selectedIdea && (
-            <>
-              <SheetHeader className="mb-6">
-                <SheetTitle className="text-[18px] font-bold leading-tight pr-6">{selectedIdea.title}</SheetTitle>
-              </SheetHeader>
-
-              <div className="space-y-6">
-                {/* Status + metadata */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-2 block">Estado</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {statuses.map(s => {
-                        const cfg = statusConfig[s];
-                        const isActive = selectedIdea.status === s;
-                        return (
-                          <button
-                            key={s}
-                            onClick={() => updateStatus(selectedIdea.id, s)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-200 ${isActive ? 'bg-card border border-black/[0.12] shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50'}`}
-                          >
-                            <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                            {cfg.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Plataforma</label>
-                      <Select value={selectedIdea.platform} onValueChange={(v) => updateIdea(selectedIdea.id, { platform: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="youtube">YouTube</SelectItem>
-                          <SelectItem value="linkedin">LinkedIn</SelectItem>
-                          <SelectItem value="twitter">X/Twitter</SelectItem>
-                          <SelectItem value="multi">Multi</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Prioridad</label>
-                      <Select value={selectedIdea.priority} onValueChange={(v) => updateIdea(selectedIdea.id, { priority: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="high">Alta</SelectItem>
-                          <SelectItem value="medium">Media</SelectItem>
-                          <SelectItem value="low">Baja</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Fecha programada</label>
-                    <Input
-                      type="date"
-                      value={selectedIdea.scheduled_date || ''}
-                      onChange={(e) => updateIdea(selectedIdea.id, { scheduled_date: e.target.value || null })}
-                    />
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Descripción</label>
-                  <Textarea
-                    value={selectedIdea.description || ''}
-                    onChange={(e) => updateIdea(selectedIdea.id, { description: e.target.value })}
-                    placeholder="Describí la idea..."
-                    rows={3}
-                  />
-                </div>
-
-                {selectedIdea.key_message && (
-                  <div>
-                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Mensaje clave</label>
-                    <p className="text-[14px] text-foreground/80">{selectedIdea.key_message}</p>
-                  </div>
-                )}
-
-                {selectedIdea.target_audience && (
-                  <div>
-                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Audiencia</label>
-                    <p className="text-[14px] text-foreground/80">{selectedIdea.target_audience}</p>
-                  </div>
-                )}
-
-                {/* Draft */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">Borrador</label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-[12px] gap-1"
-                      disabled={generatingDraft === selectedIdea.id}
-                      onClick={() => generateDraft(selectedIdea.id)}
-                    >
-                      {generatingDraft === selectedIdea.id ? (
-                        <><Loader2 className="h-3 w-3 animate-spin" /> Generando...</>
-                      ) : (
-                        <><PenTool className="h-3 w-3" /> {selectedIdea.draft_content ? 'Re-generar' : 'Generar con AI'}</>
-                      )}
-                    </Button>
-                  </div>
-                  {selectedIdea.draft_content ? (
-                    <div className="bg-muted/40 rounded-xl p-4 text-[13px] leading-relaxed max-h-64 overflow-auto scrollbar-thin whitespace-pre-wrap border border-border/40">
-                      {selectedIdea.draft_content}
-                    </div>
-                  ) : (
-                    <div className="bg-muted/20 rounded-xl p-6 text-center border border-dashed border-border/40">
-                      <PenTool className="h-5 w-5 text-muted-foreground/20 mx-auto mb-2" />
-                      <p className="text-[13px] text-muted-foreground/40">Sin borrador todavía</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-2 border-t border-border/40">
-                  {nextStatus(selectedIdea.status) && (
-                    <Button onClick={() => updateStatus(selectedIdea.id, nextStatus(selectedIdea.status)!)} className="flex-1 gap-1.5">
-                      Mover a {statusConfig[nextStatus(selectedIdea.status)!]?.label}
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    className="text-destructive hover:text-destructive"
-                    onClick={async () => {
-                      await supabase.from('content_ideas').delete().eq('id', selectedIdea.id);
-                      setSelectedIdea(null);
-                      fetchIdeas();
-                      toast({ title: 'Idea eliminada' });
-                    }}
-                  >
-                    Eliminar
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
     </motion.div>
   );
 }
