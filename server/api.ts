@@ -472,10 +472,14 @@ app.post('/api/scrape-competitor', async (req, res) => {
     const existingUrls = new Set((existing || []).map(e => e.url));
 
     // Filter out duplicates and insert new content
+    // Inherit user_id from the competitor so RLS works for the frontend
+    const ownerUserId = (competitor as any).user_id || null;
+
     const newContent = scraped
       .filter(item => item.url && !existingUrls.has(item.url))
       .map(item => ({
         competitor_id: competitorId,
+        user_id: ownerUserId,
         platform: item.platform,
         title: item.title || 'Sin título',
         url: item.url,
@@ -577,10 +581,13 @@ app.post('/api/scrape-all', async (req, res) => {
 
         const existingUrls = new Set((existing || []).map(e => e.url));
 
+        const ownerUserId = (competitor as any).user_id || null;
+
         const newContent = scraped
           .filter(item => item.url && !existingUrls.has(item.url))
           .map(item => ({
             competitor_id: competitorId,
+            user_id: ownerUserId,
             platform: item.platform,
             title: item.title || 'Sin título',
             url: item.url,

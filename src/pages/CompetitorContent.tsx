@@ -8,12 +8,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Search, Youtube, Linkedin, Twitter, FileText, Eye, ThumbsUp, Loader2 } from 'lucide-react';
+import { Plus, Search, Youtube, Linkedin, Twitter, Instagram, Music, FileText, Eye, ThumbsUp, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 
-const platformIcons: Record<string, any> = { youtube: Youtube, linkedin: Linkedin, twitter: Twitter };
+const platformIcons: Record<string, any> = { youtube: Youtube, linkedin: Linkedin, twitter: Twitter, instagram: Instagram, tiktok: Music };
 
 export default function CompetitorContentLog() {
   const { toast } = useToast();
@@ -100,6 +100,8 @@ export default function CompetitorContentLog() {
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
             <SelectItem value="youtube">YouTube</SelectItem>
+            <SelectItem value="instagram">Instagram</SelectItem>
+            <SelectItem value="tiktok">TikTok</SelectItem>
             <SelectItem value="linkedin">LinkedIn</SelectItem>
             <SelectItem value="twitter">X/Twitter</SelectItem>
           </SelectContent>
@@ -188,6 +190,8 @@ export default function CompetitorContentLog() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="youtube">YouTube</SelectItem>
+                <SelectItem value="instagram">Instagram</SelectItem>
+                <SelectItem value="tiktok">TikTok</SelectItem>
                 <SelectItem value="linkedin">LinkedIn</SelectItem>
                 <SelectItem value="twitter">X/Twitter</SelectItem>
               </SelectContent>
