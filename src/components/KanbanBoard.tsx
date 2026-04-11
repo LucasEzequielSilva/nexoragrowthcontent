@@ -22,10 +22,10 @@ const platformIcons: Record<string, HeroIcon> = { youtube: PlayIcon, linkedin: S
 const statusConfig: Record<string, { label: string; dot: string; text: string; badge: 'secondary' | 'info' | 'warning' | 'default' | 'violet' | 'success' }> = {
   idea:        { label: 'Idea',         dot: 'bg-slate-400',   text: 'text-slate-500',  badge: 'secondary' },
   researching: { label: 'Investigación', dot: 'bg-blue-500',   text: 'text-blue-600',   badge: 'info' },
-  drafting:    { label: 'Borrador',     dot: 'bg-amber-500',   text: 'text-amber-600',  badge: 'warning' },
+  drafting:    { label: 'Borrador',     dot: 'bg-amber-500/100',   text: 'text-amber-600',  badge: 'warning' },
   review:      { label: 'Revisión',     dot: 'bg-orange-500',  text: 'text-orange-600', badge: 'default' },
   scheduled:   { label: 'Programado',   dot: 'bg-violet-500',  text: 'text-violet-600', badge: 'violet' },
-  published:   { label: 'Publicado',    dot: 'bg-emerald-500', text: 'text-emerald-600', badge: 'success' },
+  published:   { label: 'Publicado',    dot: 'bg-emerald-500/100', text: 'text-emerald-600', badge: 'success' },
 };
 
 export const kanbanStatuses = Object.keys(statusConfig);
@@ -189,7 +189,7 @@ export function KanbanBoard({ ideas, setIdeas, columnWidth = 220, maxCards = 0, 
                         }}
                         onDrop={(e) => onDrop(e, status, dropTarget?.index ?? idx)}
                         onClick={() => setSelectedIdea(idea)}
-                        className={`bg-card border border-black/[0.12] rounded-xl p-3.5 mb-2 shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-150 cursor-grab active:cursor-grabbing group ${draggingId === idea.id ? 'opacity-30 scale-[0.96]' : ''}`}
+                        className={`bg-card border border-border rounded-xl p-3.5 mb-2 shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-150 cursor-grab active:cursor-grabbing group ${draggingId === idea.id ? 'opacity-30 scale-[0.96]' : ''}`}
                       >
                         <p className="text-[13px] font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">{idea.title}</p>
                         <div className="flex items-center gap-2 mt-2.5">
@@ -197,8 +197,8 @@ export function KanbanBoard({ ideas, setIdeas, columnWidth = 220, maxCards = 0, 
                             <IdeaIcon className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
                             <span className="text-[11px] text-muted-foreground/50 capitalize truncate">{idea.platform}</span>
                           </div>
-                          {idea.priority === 'high' && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md">Alta</span>}
-                          {idea.priority === 'medium' && <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">Media</span>}
+                          {idea.priority === 'high' && <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded-md">Alta</span>}
+                          {idea.priority === 'medium' && <span className="text-[10px] font-medium text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-md">Media</span>}
                         </div>
                         {idea.scheduled_date && <p className="text-[10px] text-muted-foreground/40 mt-1.5">{idea.scheduled_date}</p>}
                       </div>
@@ -253,7 +253,7 @@ export function KanbanBoard({ ideas, setIdeas, columnWidth = 220, maxCards = 0, 
                         <button
                           key={s}
                           onClick={() => updateStatus(selectedIdea.id, s)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-200 ${isActive ? 'bg-card border border-black/[0.12] shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50'}`}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-200 ${isActive ? 'bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50'}`}
                         >
                           <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
                           {cfg.label}
@@ -330,10 +330,10 @@ export function KanbanBoard({ ideas, setIdeas, columnWidth = 220, maxCards = 0, 
                     <MessageSquare className="h-4 w-4 text-muted-foreground" />
                     <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">Feedback</label>
                     {selectedIdea.feedback_status === 'approved' && (
-                      <span className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Aprobado</span>
+                      <span className="text-[11px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">Aprobado</span>
                     )}
                     {selectedIdea.feedback_status === 'rejected' && (
-                      <span className="text-[11px] font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-md">Rechazado</span>
+                      <span className="text-[11px] font-medium text-red-600 bg-red-500/10 px-2 py-0.5 rounded-md">Rechazado</span>
                     )}
                   </div>
 
@@ -349,7 +349,7 @@ export function KanbanBoard({ ideas, setIdeas, columnWidth = 220, maxCards = 0, 
                     <Button
                       variant={selectedIdea.feedback_status === 'approved' ? 'default' : 'outline'}
                       size="sm"
-                      className={`flex-1 gap-1.5 ${selectedIdea.feedback_status === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700' : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'}`}
+                      className={`flex-1 gap-1.5 ${selectedIdea.feedback_status === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700' : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10'}`}
                       onClick={() => updateIdea(selectedIdea.id, {
                         feedback_status: selectedIdea.feedback_status === 'approved' ? 'pending' : 'approved',
                         feedback_at: new Date().toISOString(),
@@ -361,7 +361,7 @@ export function KanbanBoard({ ideas, setIdeas, columnWidth = 220, maxCards = 0, 
                     <Button
                       variant={selectedIdea.feedback_status === 'rejected' ? 'default' : 'outline'}
                       size="sm"
-                      className={`flex-1 gap-1.5 ${selectedIdea.feedback_status === 'rejected' ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 hover:text-red-700 hover:bg-red-50'}`}
+                      className={`flex-1 gap-1.5 ${selectedIdea.feedback_status === 'rejected' ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 hover:text-red-700 hover:bg-red-500/10'}`}
                       onClick={() => updateIdea(selectedIdea.id, {
                         feedback_status: selectedIdea.feedback_status === 'rejected' ? 'pending' : 'rejected',
                         feedback_at: new Date().toISOString(),
@@ -435,7 +435,7 @@ export function KanbanBoard({ ideas, setIdeas, columnWidth = 220, maxCards = 0, 
 
                     {/* Quick performance summary if data exists */}
                     {selectedIdea.performance && Object.values(selectedIdea.performance as any).some((v: any) => v > 0) && (
-                      <div className="mt-3 p-2.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                      <div className="mt-3 p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
                         <p className="text-[11px] text-emerald-700 font-medium">
                           {(() => {
                             const p = selectedIdea.performance as any;

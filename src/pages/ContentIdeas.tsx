@@ -129,16 +129,16 @@ export default function ContentIdeas() {
           <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
           <Input placeholder="Buscar ideas..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <div className="flex bg-muted rounded-xl p-0.5 border border-black/[0.06]">
+        <div className="flex bg-muted rounded-xl p-0.5 border border-border/60">
           <button
             onClick={() => setView('kanban')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${view === 'kanban' ? 'bg-white border border-black/[0.12] shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${view === 'kanban' ? 'bg-white border border-border shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <ViewColumnsIcon className="h-4 w-4" /> Kanban
           </button>
           <button
             onClick={() => setView('list')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${view === 'list' ? 'bg-white border border-black/[0.12] shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${view === 'list' ? 'bg-white border border-border shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <ListBulletIcon className="h-4 w-4" /> Lista
           </button>
@@ -170,7 +170,7 @@ export default function ContentIdeas() {
             return (
               <div
                 key={idea.id}
-                className="flex items-center gap-3.5 p-3.5 bg-card border border-black/[0.12] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-200 cursor-pointer group"
+                className="flex items-center gap-3.5 p-3.5 bg-card border border-border rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.015)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-200 cursor-pointer group"
               >
                 <div className="w-9 h-9 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
                   <Icon className="h-4 w-4 text-muted-foreground" />

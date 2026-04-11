@@ -302,7 +302,7 @@ export default function Competitors() {
                       const isUrl = (url as string).startsWith('http');
                       return (
                         <div key={platform} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/40">
-                          <div className="w-8 h-8 rounded-lg bg-card flex items-center justify-center border border-black/[0.04]">
+                          <div className="w-8 h-8 rounded-lg bg-card flex items-center justify-center border border-border">
                             <span className="text-[11px] font-bold text-muted-foreground uppercase">{(platform as string).slice(0, 2)}</span>
                           </div>
                           <div className="flex-1 min-w-0">
