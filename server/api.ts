@@ -44,6 +44,29 @@ async function callGroq(messages: any[], temperature = 0.3) {
   return JSON.parse(data.choices[0].message.content || '{}');
 }
 
+// Helper: obtener perfil del creador
+async function getCreatorContext(userId?: string): Promise<string> {
+  if (!userId) return '';
+  const { data } = await supabase
+    .from('creator_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (!data) return '';
+
+  const parts = [
+    data.display_name && `Creador: ${data.display_name}`,
+    data.role && `Rol: ${data.role}`,
+    data.content_focus && `Foco de contenido: ${data.content_focus}`,
+    data.personal_tone && `Tono personal: ${data.personal_tone}`,
+    data.target_audience && `Audiencia personal: ${data.target_audience}`,
+    data.personal_brand && `Marca personal: ${data.personal_brand}`,
+  ].filter(Boolean);
+
+  return parts.length ? 'PERFIL DEL CREADOR:\n' + parts.join('\n') : '';
+}
+
 // Helper: obtener contexto del negocio para prompts AI
 async function getBusinessContext(): Promise<string> {
   const { data } = await supabase
@@ -725,6 +748,56 @@ app.post('/api/scrape-all', async (req, res) => {
     }
 
     res.json({ success: true, competitor: competitor.name, results });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// GET /api/creator-profile — Obtener perfil del creador
+// ==========================================
+app.get('/api/creator-profile', async (req, res) => {
+  try {
+    const userId = req.query.userId as string;
+    if (!userId) return res.json({ profile: null });
+
+    const { data, error } = await supabase
+      .from('creator_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code === 'PGRST116') return res.json({ profile: null });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ profile: data });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// PUT /api/creator-profile — Guardar perfil del creador
+// ==========================================
+app.put('/api/creator-profile', async (req, res) => {
+  try {
+    const profile = req.body;
+    if (profile.id) {
+      const { data, error } = await supabase
+        .from('creator_profiles')
+        .update(profile)
+        .eq('id', profile.id)
+        .select()
+        .single();
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ profile: data });
+    }
+    const { data, error } = await supabase
+      .from('creator_profiles')
+      .insert(profile)
+      .select()
+      .single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ profile: data });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

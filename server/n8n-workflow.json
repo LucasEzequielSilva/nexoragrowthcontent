@@ -99,11 +99,33 @@
       }
     },
     {
+      "id": "sb-creator",
+      "name": "Get Creator",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1120, 400],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "creator_profiles",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            { "keyName": "user_id", "condition": "eq", "keyValue": "={{ $('Webhook').first().json.body?.user_id }}" }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": { "id": "Thn3jgEbbxPFD7d9", "name": "Supabase account" }
+      }
+    },
+    {
       "id": "sb-existing",
       "name": "Get Existing",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1220, 400],
+      "position": [1320, 400],
       "alwaysOutputData": true,
       "parameters": {
         "operation": "getAll",
@@ -120,9 +142,9 @@
       "name": "Build Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1440, 400],
+      "position": [1540, 400],
       "parameters": {
-        "jsCode": "const profile = $('Get Profile').first()?.json || {};\nconst content = $('Get Competitors').all().map(i => i.json).filter(i => i.title);\nconst approved = $('Get Approved').all().map(i => i.json).filter(i => i.title);\nconst rejected = $('Get Rejected').all().map(i => i.json).filter(i => i.title);\nconst existing = $('Get Existing').all().map(i => i.json).filter(i => i.title);\nconst webhook = $('Webhook').first().json;\n\nlet biz = '';\nif(profile.brand_name) biz+='Marca: '+profile.brand_name+'\\n';\nif(profile.tagline) biz+='Tagline: '+profile.tagline+'\\n';\nif(profile.services) biz+='Servicios: '+profile.services+'\\n';\nif(profile.ideal_client) biz+='Cliente ideal: '+profile.ideal_client+'\\n';\nif(profile.differentiator) biz+='Diferenciador: '+profile.differentiator+'\\n';\nif(profile.tone_and_style) biz+='Tono: '+profile.tone_and_style+'\\n';\nif(profile.goals) biz+='Objetivos: '+profile.goals+'\\n';\nif(profile.avoid_topics) biz+='Evitar: '+profile.avoid_topics+'\\n';\n\nlet fb='';\nif(approved.length){fb+='APROBADAS:\\n';approved.forEach(a=>fb+='OK: '+a.title+(a.feedback_notes?' — '+a.feedback_notes:'')+'\\n');}\nif(rejected.length){fb+='RECHAZADAS:\\n';rejected.forEach(r=>fb+='NO: '+r.title+(r.feedback_notes?' — '+r.feedback_notes:'')+'\\n');}\n\nconst comp = content.map(c=>c.title+': '+(c.analysis_notes||'').slice(0,200)).join('\\n');\nconst exist = existing.map(e=>e.title).join(', ');\n\nreturn [{json:{\n  count: webhook.body?.count || 5,\n  platform: webhook.body?.platform || 'multi',\n  businessContext: biz,\n  feedbackContext: fb,\n  competitorContext: comp.slice(0,4000),\n  existingTitles: exist.slice(0,2000)\n}}];"
+        "jsCode": "const profile = $('Get Profile').first()?.json || {};\nconst creatorData = $('Get Creator').first()?.json || {};\nconst content = $('Get Competitors').all().map(i => i.json).filter(i => i.title);\nconst approved = $('Get Approved').all().map(i => i.json).filter(i => i.title);\nconst rejected = $('Get Rejected').all().map(i => i.json).filter(i => i.title);\nconst existing = $('Get Existing').all().map(i => i.json).filter(i => i.title);\nconst webhook = $('Webhook').first().json;\n\nlet biz = '';\nif(profile.brand_name) biz+='Marca: '+profile.brand_name+'\\n';\nif(profile.tagline) biz+='Tagline: '+profile.tagline+'\\n';\nif(profile.services) biz+='Servicios: '+profile.services+'\\n';\nif(profile.ideal_client) biz+='Cliente ideal: '+profile.ideal_client+'\\n';\nif(profile.differentiator) biz+='Diferenciador: '+profile.differentiator+'\\n';\nif(profile.tone_and_style) biz+='Tono: '+profile.tone_and_style+'\\n';\nif(profile.goals) biz+='Objetivos: '+profile.goals+'\\n';\nif(profile.avoid_topics) biz+='Evitar: '+profile.avoid_topics+'\\n';\n\nlet fb='';\nif(approved.length){fb+='APROBADAS:\\n';approved.forEach(a=>fb+='OK: '+a.title+(a.feedback_notes?' — '+a.feedback_notes:'')+'\\n');}\nif(rejected.length){fb+='RECHAZADAS:\\n';rejected.forEach(r=>fb+='NO: '+r.title+(r.feedback_notes?' — '+r.feedback_notes:'')+'\\n');}\n\nconst comp = content.map(c=>c.title+': '+(c.analysis_notes||'').slice(0,200)).join('\\n');\nconst exist = existing.map(e=>e.title).join(', ');\n\nlet creator='';\nif(creatorData.display_name) creator+='Creador: '+creatorData.display_name+'\\n';\nif(creatorData.role) creator+='Rol: '+creatorData.role+'\\n';\nif(creatorData.content_focus) creator+='Foco: '+creatorData.content_focus+'\\n';\nif(creatorData.personal_tone) creator+='Tono: '+creatorData.personal_tone+'\\n';\nif(creatorData.target_audience) creator+='Audiencia: '+creatorData.target_audience+'\\n';\nif(creatorData.personal_brand) creator+='Marca personal: '+creatorData.personal_brand+'\\n';\n\nreturn [{json:{\n  count: webhook.body?.count || 5,\n  platform: webhook.body?.platform || 'multi',\n  businessContext: biz,\n  creatorContext: creator,\n  feedbackContext: fb,\n  competitorContext: comp.slice(0,4000),\n  existingTitles: exist.slice(0,2000)\n}}];"
       }
     },
     {
@@ -136,7 +158,7 @@
           "systemMessage": "=Sos un investigador de contenido estratégico. Generá un BRIEF ESTRATÉGICO conciso.\n\nIncluir:\n1. Temas trending entre competidores\n2. Gaps de contenido\n3. Patrones del feedback\n4. 3-5 recomendaciones para {{ $json.count }} ideas en {{ $json.platform }}\n\nSé concreto."
         },
         "promptType": "define",
-        "text": "=Negocio:\n{{ $json.businessContext }}\n\nCompetidores:\n{{ $json.competitorContext }}\n\n{{ $json.feedbackContext }}\n\nPlataforma: {{ $json.platform }} | Cantidad: {{ $json.count }}"
+        "text": "=Negocio:\n{{ $json.businessContext }}\n\n{{ $json.creatorContext }}\n\nCompetidores:\n{{ $json.competitorContext }}\n\n{{ $json.feedbackContext }}\n\nPlataforma: {{ $json.platform }} | Cantidad: {{ $json.count }}"
       }
     },
     {
@@ -174,7 +196,7 @@
           "systemMessage": "=Sos un creativo de contenido. Generá EXACTAMENTE {{ $json.count }} ideas DIVERSAS.\n\nREGLAS:\n- Cada idea DIFERENTE en formato y ángulo\n- Mezclá: build in public, behind the scenes, hot takes, casos, tutoriales reales\n- NO repetir existentes\n- Seguir brief estratégico\n- Respetar tono del negocio\n- Evitar lo rechazado, más de lo aprobado\n\nPara cada idea: título, descripción, mensaje clave, tipo, ángulo.\nLista numerada."
         },
         "promptType": "define",
-        "text": "=BRIEF:\n{{ $json.researchBrief }}\n\nNEGOCIO:\n{{ $json.businessContext }}\n\nFEEDBACK:\n{{ $json.feedbackContext }}\n\nPlataforma: {{ $json.platform }}\nNO REPETIR: {{ $json.existingTitles }}"
+        "text": "=BRIEF:\n{{ $json.researchBrief }}\n\nNEGOCIO:\n{{ $json.businessContext }}\n\nCREADOR:\n{{ $json.creatorContext }}\n\nFEEDBACK:\n{{ $json.feedbackContext }}\n\nPlataforma: {{ $json.platform }}\nNO REPETIR: {{ $json.existingTitles }}"
       }
     },
     {
@@ -269,6 +291,9 @@
       "main": [[{"node": "Get Rejected", "type": "main", "index": 0}]]
     },
     "Get Rejected": {
+      "main": [[{"node": "Get Creator", "type": "main", "index": 0}]]
+    },
+    "Get Creator": {
       "main": [[{"node": "Get Existing", "type": "main", "index": 0}]]
     },
     "Get Existing": {

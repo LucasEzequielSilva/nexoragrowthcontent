@@ -29,5 +29,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(profile),
     }).then(r => r.json()),
+  getCreatorProfile: (userId: string) => apiCall(`/api/creator-profile?userId=${userId}`),
+  saveCreatorProfile: (profile: any) =>
+    fetch(`${API_URL}/api/creator-profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    }).then(r => r.json()),
   health: () => apiCall('/api/health'),
 };

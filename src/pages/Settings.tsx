@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Building2, Target, Palette, Save, Loader2, CheckCircle2 } from 'lucide-react';
+import { Building2, Target, Palette, Save, Loader2, CheckCircle2, UserCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +26,28 @@ interface BusinessProfile {
   avoid_topics: string;
 }
 
+interface CreatorProfile {
+  id?: string;
+  user_id?: string;
+  display_name: string;
+  role: string;
+  content_focus: string;
+  personal_tone: string;
+  target_audience: string;
+  personal_brand: string;
+  handles: Record<string, string>;
+}
+
+const EMPTY_CREATOR: CreatorProfile = {
+  display_name: '',
+  role: '',
+  content_focus: '',
+  personal_tone: '',
+  target_audience: '',
+  personal_brand: '',
+  handles: {},
+};
+
 const EMPTY_PROFILE: BusinessProfile = {
   brand_name: '',
   tagline: '',
@@ -44,31 +66,43 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<BusinessProfile>(EMPTY_PROFILE);
+  const [creator, setCreator] = useState<CreatorProfile>(EMPTY_CREATOR);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.getBusinessProfile().then(res => {
-      if (res.profile) setProfile(res.profile);
+    Promise.all([
+      api.getBusinessProfile(),
+      user?.id ? api.getCreatorProfile(user.id) : Promise.resolve({ profile: null }),
+    ]).then(([bizRes, creatorRes]) => {
+      if (bizRes.profile) setProfile(bizRes.profile);
+      if (creatorRes.profile) setCreator(creatorRes.profile);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, []);
+  }, [user?.id]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = { ...profile, user_id: user?.id };
-      const res = await api.saveBusinessProfile(payload);
-      if (res.profile) setProfile(res.profile);
-      toast({ title: 'Perfil guardado', description: 'Tu contexto de negocio se actualizó correctamente.' });
+      const [bizRes, creatorRes] = await Promise.all([
+        api.saveBusinessProfile({ ...profile, user_id: user?.id }),
+        api.saveCreatorProfile({ ...creator, user_id: user?.id }),
+      ]);
+      if (bizRes.profile) setProfile(bizRes.profile);
+      if (creatorRes.profile) setCreator(creatorRes.profile);
+      toast({ title: 'Perfiles guardados', description: 'Business + Creator actualizados.' });
     } catch {
-      toast({ title: 'Error', description: 'No se pudo guardar el perfil.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'No se pudo guardar.', variant: 'destructive' });
     }
     setSaving(false);
   };
 
   const update = (field: keyof BusinessProfile, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateCreator = (field: keyof CreatorProfile, value: string) => {
+    setCreator(prev => ({ ...prev, [field]: value }));
   };
 
   const updatePlatform = (key: string, value: string) => {
@@ -97,6 +131,74 @@ export default function SettingsPage() {
           Guardar
         </Button>
       </div>
+
+      {/* Creator Profile */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <UserCircle className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-base">Tu perfil de creador</CardTitle>
+              <CardDescription>Define como creas contenido vos — esto personaliza la AI para tu estilo</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input
+                placeholder="Ej: Lucas"
+                value={creator.display_name}
+                onChange={e => updateCreator('display_name', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Rol</Label>
+              <Input
+                placeholder="Ej: CTO / Builder / Growth Lead"
+                value={creator.role}
+                onChange={e => updateCreator('role', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Foco de contenido</Label>
+            <Textarea
+              placeholder="¿De qué temas hablás vos? Ej: vibe coding, agentes AI, N8N, build in public, arquitectura de sistemas..."
+              value={creator.content_focus}
+              onChange={e => updateCreator('content_focus', e.target.value)}
+              rows={2}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Tu tono personal</Label>
+            <Textarea
+              placeholder="¿Cómo hablás vos? Ej: técnico pero accesible, muestro el proceso real, directo..."
+              value={creator.personal_tone}
+              onChange={e => updateCreator('personal_tone', e.target.value)}
+              rows={2}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Tu audiencia</Label>
+            <Input
+              placeholder="Ej: builders, devs, founders técnicos"
+              value={creator.target_audience}
+              onChange={e => updateCreator('target_audience', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Marca personal</Label>
+            <Textarea
+              placeholder="¿Qué te hace único? Ej: construyo en vivo, muestro errores y todo, documento el proceso real..."
+              value={creator.personal_brand}
+              onChange={e => updateCreator('personal_brand', e.target.value)}
+              rows={2}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Identidad */}
       <Card>
