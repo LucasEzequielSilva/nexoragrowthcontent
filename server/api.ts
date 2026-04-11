@@ -70,6 +70,41 @@ async function getBusinessContext(): Promise<string> {
   return parts.join('\n');
 }
 
+// Helper: obtener feedback histórico para guiar la AI
+async function getFeedbackContext(): Promise<string> {
+  const { data: approved } = await supabase
+    .from('content_ideas')
+    .select('title, feedback_notes')
+    .eq('feedback_status', 'approved')
+    .order('feedback_at', { ascending: false })
+    .limit(10);
+
+  const { data: rejected } = await supabase
+    .from('content_ideas')
+    .select('title, feedback_notes')
+    .eq('feedback_status', 'rejected')
+    .order('feedback_at', { ascending: false })
+    .limit(10);
+
+  const parts: string[] = [];
+
+  if (approved?.length) {
+    parts.push('IDEAS APROBADAS (hacer más de este estilo):');
+    approved.forEach(a => {
+      parts.push(`  ✓ "${a.title}"${a.feedback_notes ? ` — Razón: ${a.feedback_notes}` : ''}`);
+    });
+  }
+
+  if (rejected?.length) {
+    parts.push('IDEAS RECHAZADAS (evitar este estilo):');
+    rejected.forEach(r => {
+      parts.push(`  ✗ "${r.title}"${r.feedback_notes ? ` — Razón: ${r.feedback_notes}` : ''}`);
+    });
+  }
+
+  return parts.join('\n');
+}
+
 // ==========================================
 // POST /api/analyze — Analizar contenido de un competidor
 // ==========================================
@@ -126,6 +161,83 @@ Respondé en español (LATAM) en JSON con: summary, tags (array), analysis (obje
     });
 
     res.json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// POST /api/analyze-batch — Analizar todo el contenido no analizado
+// ==========================================
+app.post('/api/analyze-batch', async (req, res) => {
+  try {
+    const { competitorId } = req.body;
+
+    let query = supabase
+      .from('competitor_content')
+      .select('id, title, content_body, competitor_id, competitors(name)')
+      .eq('is_analyzed', false)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (competitorId) query = query.eq('competitor_id', competitorId);
+
+    const { data: pending } = await query;
+
+    if (!pending?.length) {
+      return res.json({ success: true, analyzed: 0, message: 'No hay contenido pendiente de análisis' });
+    }
+
+    let analyzed = 0;
+    const errors: string[] = [];
+
+    for (const content of pending) {
+      try {
+        const competitorName = (content as any).competitors?.name || 'Desconocido';
+        const text = content.content_body || content.title;
+
+        const result = await callGroq([
+          {
+            role: 'system',
+            content: `Sos un analista de contenido. Analizá contenido de competidores y extraé insights accionables.
+Respondé en español (LATAM) en JSON con: summary, tags (array), analysis (objeto con: product_insights, content_strategy, what_worked, nexora_opportunity).`
+          },
+          {
+            role: 'user',
+            content: `Analizá este contenido de ${competitorName}:\n\n${text?.slice(0, 8000)}`
+          }
+        ]);
+
+        await supabase
+          .from('competitor_content')
+          .update({
+            is_analyzed: true,
+            analysis_notes: JSON.stringify(result.analysis || {}, null, 2),
+            tags: result.tags || [],
+          })
+          .eq('id', content.id);
+
+        await supabase.from('knowledge_base').insert({
+          source_type: 'competitor_content',
+          competitor_id: content.competitor_id,
+          competitor_content_id: content.id,
+          title: content.title,
+          content: text,
+          summary: result.summary,
+          tags: result.tags,
+          analysis: result.analysis,
+          user_id: (content as any).user_id || null,
+        });
+
+        analyzed++;
+        // Small delay to respect Groq rate limits
+        await new Promise(r => setTimeout(r, 2000));
+      } catch (err: any) {
+        errors.push(`${content.title.slice(0, 40)}: ${err.message}`);
+      }
+    }
+
+    res.json({ success: true, analyzed, total: pending.length, errors: errors.length ? errors : undefined });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -227,6 +339,7 @@ app.post('/api/generate-idea', async (req, res) => {
     const existing = (existingIdeas || []).map(i => i.title);
 
     const businessContext = await getBusinessContext();
+    const feedbackContext = await getFeedbackContext();
 
     const result = await callGroq([
       {
@@ -236,11 +349,12 @@ app.post('/api/generate-idea', async (req, res) => {
 Contexto del negocio:
 ${businessContext}
 
+${feedbackContext ? `FEEDBACK HISTÓRICO (usá esto para calibrar qué tipo de ideas funcionan y cuáles no):\n${feedbackContext}\n` : ''}
 Respondé en español (LATAM) en JSON con: title, description, key_message, content_type, draft_outline.`
       },
       {
         role: 'user',
-        content: `Generá una idea de contenido única para Lucas.
+        content: `Generá una idea de contenido única.
 
 Contexto de competidores: ${context.slice(0, 4000)}
 
@@ -282,6 +396,7 @@ app.post('/api/generate-draft', async (req, res) => {
     const context = (related || []).map(r => `${r.title}: ${r.summary}`).join('\n');
 
     const businessContext = await getBusinessContext();
+    const feedbackContext = await getFeedbackContext();
 
     const result = await callGroq([
       {
@@ -293,6 +408,7 @@ Si es tweet/thread: texto listo para publicar. Si es LinkedIn: post completo.
 Contexto del negocio:
 ${businessContext}
 
+${feedbackContext ? `FEEDBACK HISTÓRICO (calibrá el tono y enfoque según lo que fue aprobado/rechazado):\n${feedbackContext}\n` : ''}
 Respondé en JSON con: draft (string con el contenido completo), hooks (array de 3 opciones de gancho/intro), cta (call to action sugerido).`
       },
       {

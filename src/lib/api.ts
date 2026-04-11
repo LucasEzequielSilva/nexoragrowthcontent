@@ -13,6 +13,7 @@ async function apiCall(endpoint: string, body?: any) {
 
 export const api = {
   analyzeContent: (contentId: string) => apiCall('/api/analyze', { contentId }),
+  analyzeBatch: (competitorId?: string) => apiCall('/api/analyze-batch', { competitorId }),
   generateBrief: () => apiCall('/api/generate-brief', {}),
   generateIdea: (pillar?: string, platform?: string) => apiCall('/api/generate-idea', { pillar, platform }),
   generateDraft: (ideaId: string) => apiCall('/api/generate-draft', { ideaId }),

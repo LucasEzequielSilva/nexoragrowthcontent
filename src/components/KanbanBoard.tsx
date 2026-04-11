@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   PlusIcon, DocumentTextIcon, PlayIcon, ShareIcon, PaperAirplaneIcon,
 } from '@heroicons/react/24/solid';
-import { Loader2, PenTool, BarChart3, Eye, Heart, MessageCircle, Share2, Bookmark } from 'lucide-react';
+import { Loader2, PenTool, BarChart3, Eye, Heart, MessageCircle, Share2, Bookmark, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
@@ -322,6 +322,55 @@ export function KanbanBoard({ ideas, setIdeas, columnWidth = 220, maxCards = 0, 
                       <p className="text-[13px] text-muted-foreground/40">Sin borrador todavía</p>
                     </div>
                   )}
+                </div>
+
+                {/* Feedback — approve/reject to train the AI */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">Feedback</label>
+                    {selectedIdea.feedback_status === 'approved' && (
+                      <span className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Aprobado</span>
+                    )}
+                    {selectedIdea.feedback_status === 'rejected' && (
+                      <span className="text-[11px] font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-md">Rechazado</span>
+                    )}
+                  </div>
+
+                  <Textarea
+                    placeholder="¿Por qué aprobás o rechazás esta idea? Este feedback mejora las próximas generaciones..."
+                    value={selectedIdea.feedback_notes || ''}
+                    onChange={(e) => updateIdea(selectedIdea.id, { feedback_notes: e.target.value })}
+                    rows={2}
+                    className="mb-2 text-[13px]"
+                  />
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant={selectedIdea.feedback_status === 'approved' ? 'default' : 'outline'}
+                      size="sm"
+                      className={`flex-1 gap-1.5 ${selectedIdea.feedback_status === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700' : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'}`}
+                      onClick={() => updateIdea(selectedIdea.id, {
+                        feedback_status: selectedIdea.feedback_status === 'approved' ? 'pending' : 'approved',
+                        feedback_at: new Date().toISOString(),
+                      })}
+                    >
+                      <ThumbsUp className="h-3.5 w-3.5" />
+                      {selectedIdea.feedback_status === 'approved' ? 'Aprobado' : 'Aprobar'}
+                    </Button>
+                    <Button
+                      variant={selectedIdea.feedback_status === 'rejected' ? 'default' : 'outline'}
+                      size="sm"
+                      className={`flex-1 gap-1.5 ${selectedIdea.feedback_status === 'rejected' ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 hover:text-red-700 hover:bg-red-50'}`}
+                      onClick={() => updateIdea(selectedIdea.id, {
+                        feedback_status: selectedIdea.feedback_status === 'rejected' ? 'pending' : 'rejected',
+                        feedback_at: new Date().toISOString(),
+                      })}
+                    >
+                      <ThumbsDown className="h-3.5 w-3.5" />
+                      {selectedIdea.feedback_status === 'rejected' ? 'Rechazado' : 'Rechazar'}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Performance Metrics — visible for scheduled & published */}

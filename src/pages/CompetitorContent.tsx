@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Search, Youtube, Linkedin, Twitter, Instagram, Music, FileText, Eye, ThumbsUp, Loader2 } from 'lucide-react';
+import { Plus, Search, Youtube, Linkedin, Twitter, Instagram, Music, FileText, Eye, ThumbsUp, Loader2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
@@ -27,6 +27,7 @@ export default function CompetitorContentLog() {
   const [competitors, setCompetitors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState<string | null>(null);
+  const [analyzingBatch, setAnalyzingBatch] = useState(false);
   const [search, setSearch] = useState('');
   const [compFilter, setCompFilter] = useState('all');
   const [platFilter, setPlatFilter] = useState('all');
@@ -80,13 +81,38 @@ export default function CompetitorContentLog() {
     }
   };
 
+  const analyzeBatch = async () => {
+    setAnalyzingBatch(true);
+    try {
+      const result = await api.analyzeBatch(compFilter !== 'all' ? compFilter : undefined);
+      toast({
+        title: 'Análisis batch completado',
+        description: `${result.analyzed}/${result.total} contenidos analizados${result.errors?.length ? ` (${result.errors.length} errores)` : ''}`,
+      });
+      fetchData();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+    setAnalyzingBatch(false);
+  };
+
+  const unanalyzedCount = content.filter(c => !c.is_analyzed).length;
+
   if (loading) return <div className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div>;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">Contenido de Competidores</h1>
-        <Button onClick={() => setShowNew(true)}><Plus className="mr-2 h-4 w-4" /> Registrar Contenido</Button>
+        <div className="flex gap-2">
+          {unanalyzedCount > 0 && (
+            <Button variant="outline" onClick={analyzeBatch} disabled={analyzingBatch}>
+              {analyzingBatch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {analyzingBatch ? 'Analizando...' : `Analizar todo (${unanalyzedCount})`}
+            </Button>
+          )}
+          <Button onClick={() => setShowNew(true)}><Plus className="mr-2 h-4 w-4" /> Registrar Contenido</Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">

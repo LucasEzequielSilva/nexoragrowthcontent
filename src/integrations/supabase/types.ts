@@ -202,6 +202,9 @@ export type Database = {
           created_at: string
           description: string | null
           draft_content: string | null
+          feedback_status: string | null
+          feedback_notes: string | null
+          feedback_at: string | null
           id: string
           key_message: string | null
           performance: Json | null
@@ -222,6 +225,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           draft_content?: string | null
+          feedback_status?: string | null
+          feedback_notes?: string | null
+          feedback_at?: string | null
           id?: string
           key_message?: string | null
           performance?: Json | null
@@ -242,6 +248,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           draft_content?: string | null
+          feedback_status?: string | null
+          feedback_notes?: string | null
+          feedback_at?: string | null
           id?: string
           key_message?: string | null
           performance?: Json | null
