@@ -70,31 +70,30 @@ export default function ContentIdeas() {
 
   const generateIdeas = async () => {
     setGeneratingIdea(true);
-    setGenProgress(0);
     setShowGenerate(false);
-    let generated = 0;
 
-    for (let i = 0; i < genCount; i++) {
-      try {
-        setGenProgress(i + 1);
-        const result = await api.generateIdea(undefined, genPlatform !== 'multi' ? genPlatform : undefined);
-        if (result.idea) {
-          await supabase.from('content_ideas').insert({
-            title: result.idea.title, description: result.idea.description || '',
-            key_message: result.idea.key_message || '', content_type: result.idea.content_type || 'hot_take',
-            source: 'agent', status: 'idea', priority: 'medium', platform: genPlatform,
-          });
-          generated++;
-        }
-      } catch (err: any) {
-        toast({ title: `Error en idea ${i + 1}`, description: err.message, variant: 'destructive' });
+    try {
+      const res = await fetch('https://n8n.raquelrodriguez.com.ar/webhook/nexora-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: genCount, platform: genPlatform }),
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        toast({
+          title: `${result.saved} ideas generadas`,
+          description: 'Pipeline agéntico: investigador → creativo → validador. Revisalas y aprobá o rechazá.',
+        });
+      } else {
+        toast({ title: 'Error', description: result.message || 'Error en el pipeline', variant: 'destructive' });
       }
+    } catch (err: any) {
+      toast({ title: 'Error al generar', description: err.message, variant: 'destructive' });
     }
 
-    toast({ title: `${generated} ideas generadas`, description: 'Revisalas y aprobá o rechazá para mejorar las próximas.' });
     fetchIdeas();
     setGeneratingIdea(false);
-    setGenProgress(0);
   };
 
   if (loading) return (

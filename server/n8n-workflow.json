@@ -1,0 +1,311 @@
+{
+  "name": "Nexora — Content Ideas Agent Pipeline v3",
+  "nodes": [
+    {
+      "id": "trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 400],
+      "webhookId": "nexora-ideas-v3",
+      "parameters": {
+        "path": "nexora-ideas",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "sb-profile",
+      "name": "Get Profile",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [420, 400],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "business_profile",
+        "returnAll": false,
+        "limit": 1
+      },
+      "credentials": {
+        "supabaseApi": { "id": "Thn3jgEbbxPFD7d9", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "sb-competitors",
+      "name": "Get Competitors",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [620, 400],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "competitor_content",
+        "returnAll": false,
+        "limit": 15,
+        "filters": {
+          "conditions": [
+            { "keyName": "is_analyzed", "condition": "eq", "keyValue": "true" }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": { "id": "Thn3jgEbbxPFD7d9", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "sb-approved",
+      "name": "Get Approved",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [820, 400],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "content_ideas",
+        "returnAll": false,
+        "limit": 10,
+        "filters": {
+          "conditions": [
+            { "keyName": "feedback_status", "condition": "eq", "keyValue": "approved" }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": { "id": "Thn3jgEbbxPFD7d9", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "sb-rejected",
+      "name": "Get Rejected",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1020, 400],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "content_ideas",
+        "returnAll": false,
+        "limit": 10,
+        "filters": {
+          "conditions": [
+            { "keyName": "feedback_status", "condition": "eq", "keyValue": "rejected" }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": { "id": "Thn3jgEbbxPFD7d9", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "sb-existing",
+      "name": "Get Existing",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1220, 400],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "content_ideas",
+        "returnAll": false,
+        "limit": 30
+      },
+      "credentials": {
+        "supabaseApi": { "id": "Thn3jgEbbxPFD7d9", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "code-merge",
+      "name": "Build Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 400],
+      "parameters": {
+        "jsCode": "const profile = $('Get Profile').first()?.json || {};\nconst content = $('Get Competitors').all().map(i => i.json).filter(i => i.title);\nconst approved = $('Get Approved').all().map(i => i.json).filter(i => i.title);\nconst rejected = $('Get Rejected').all().map(i => i.json).filter(i => i.title);\nconst existing = $('Get Existing').all().map(i => i.json).filter(i => i.title);\nconst webhook = $('Webhook').first().json;\n\nlet biz = '';\nif(profile.brand_name) biz+='Marca: '+profile.brand_name+'\\n';\nif(profile.tagline) biz+='Tagline: '+profile.tagline+'\\n';\nif(profile.services) biz+='Servicios: '+profile.services+'\\n';\nif(profile.ideal_client) biz+='Cliente ideal: '+profile.ideal_client+'\\n';\nif(profile.differentiator) biz+='Diferenciador: '+profile.differentiator+'\\n';\nif(profile.tone_and_style) biz+='Tono: '+profile.tone_and_style+'\\n';\nif(profile.goals) biz+='Objetivos: '+profile.goals+'\\n';\nif(profile.avoid_topics) biz+='Evitar: '+profile.avoid_topics+'\\n';\n\nlet fb='';\nif(approved.length){fb+='APROBADAS:\\n';approved.forEach(a=>fb+='OK: '+a.title+(a.feedback_notes?' — '+a.feedback_notes:'')+'\\n');}\nif(rejected.length){fb+='RECHAZADAS:\\n';rejected.forEach(r=>fb+='NO: '+r.title+(r.feedback_notes?' — '+r.feedback_notes:'')+'\\n');}\n\nconst comp = content.map(c=>c.title+': '+(c.analysis_notes||'').slice(0,200)).join('\\n');\nconst exist = existing.map(e=>e.title).join(', ');\n\nreturn [{json:{\n  count: webhook.body?.count || 5,\n  platform: webhook.body?.platform || 'multi',\n  businessContext: biz,\n  feedbackContext: fb,\n  competitorContext: comp.slice(0,4000),\n  existingTitles: exist.slice(0,2000)\n}}];"
+      }
+    },
+    {
+      "id": "agent-researcher",
+      "name": "Agente Investigador",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1680, 400],
+      "parameters": {
+        "options": {
+          "systemMessage": "=Sos un investigador de contenido estratégico. Generá un BRIEF ESTRATÉGICO conciso.\n\nIncluir:\n1. Temas trending entre competidores\n2. Gaps de contenido\n3. Patrones del feedback\n4. 3-5 recomendaciones para {{ $json.count }} ideas en {{ $json.platform }}\n\nSé concreto."
+        },
+        "promptType": "define",
+        "text": "=Negocio:\n{{ $json.businessContext }}\n\nCompetidores:\n{{ $json.competitorContext }}\n\n{{ $json.feedbackContext }}\n\nPlataforma: {{ $json.platform }} | Cantidad: {{ $json.count }}"
+      }
+    },
+    {
+      "id": "groq-researcher",
+      "name": "Groq Investigador",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [1680, 620],
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": { "temperature": 0.4 }
+      },
+      "credentials": {
+        "groqApi": { "id": "9RYTAdYk0N6mBXUj", "name": "Groq account" }
+      }
+    },
+    {
+      "id": "code-prep",
+      "name": "Prep Creativo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1900, 400],
+      "parameters": {
+        "jsCode": "const agentOutput = $input.first().json.output || $input.first().json.text || '';\nconst prev = $('Build Context').first().json;\nreturn [{json:{...prev, researchBrief: agentOutput}}];"
+      }
+    },
+    {
+      "id": "agent-creative",
+      "name": "Agente Creativo",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [2120, 400],
+      "parameters": {
+        "options": {
+          "systemMessage": "=Sos un creativo de contenido. Generá EXACTAMENTE {{ $json.count }} ideas DIVERSAS.\n\nREGLAS:\n- Cada idea DIFERENTE en formato y ángulo\n- Mezclá: build in public, behind the scenes, hot takes, casos, tutoriales reales\n- NO repetir existentes\n- Seguir brief estratégico\n- Respetar tono del negocio\n- Evitar lo rechazado, más de lo aprobado\n\nPara cada idea: título, descripción, mensaje clave, tipo, ángulo.\nLista numerada."
+        },
+        "promptType": "define",
+        "text": "=BRIEF:\n{{ $json.researchBrief }}\n\nNEGOCIO:\n{{ $json.businessContext }}\n\nFEEDBACK:\n{{ $json.feedbackContext }}\n\nPlataforma: {{ $json.platform }}\nNO REPETIR: {{ $json.existingTitles }}"
+      }
+    },
+    {
+      "id": "groq-creative",
+      "name": "Groq Creativo",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [2120, 620],
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": { "temperature": 0.85 }
+      },
+      "credentials": {
+        "groqApi": { "id": "9RYTAdYk0N6mBXUj", "name": "Groq account" }
+      }
+    },
+    {
+      "id": "agent-validator",
+      "name": "Agente Validador",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [2340, 400],
+      "parameters": {
+        "options": {
+          "systemMessage": "Sos un validador. Evaluá cada idea con score 1-10.\n\nCRITERIOS: Originalidad, Coherencia, Diversidad, Gancho, Accionabilidad.\n\nDevolvé SOLO JSON:\n{\"ideas\": [{\"title\": \"...\", \"description\": \"...\", \"key_message\": \"...\", \"content_type\": \"...\", \"score\": N, \"verdict\": \"APROBAR/DESCARTAR\"}]}\n\nAPROBAR >= 7. DESCARTAR < 7."
+        },
+        "promptType": "define",
+        "text": "=IDEAS:\n{{ $json.output || $json.text }}\n\nFEEDBACK:\n{{ $('Prep Creativo').first().json.feedbackContext }}\n\nEXISTENTES: {{ $('Prep Creativo').first().json.existingTitles }}"
+      }
+    },
+    {
+      "id": "groq-validator",
+      "name": "Groq Validador",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [2340, 620],
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": { "temperature": 0.15 }
+      },
+      "credentials": {
+        "groqApi": { "id": "9RYTAdYk0N6mBXUj", "name": "Groq account" }
+      }
+    },
+    {
+      "id": "code-parse",
+      "name": "Parse Ideas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2560, 400],
+      "parameters": {
+        "jsCode": "const output = $input.first().json.output || $input.first().json.text || '';\nconst platform = $('Prep Creativo').first().json.platform || 'multi';\nconst userId = $('Get Profile').first()?.json?.user_id || null;\n\nlet ideas = [];\ntry {\n  const jsonMatch = output.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) ideas = JSON.parse(jsonMatch[0]).ideas || [];\n} catch(e) {}\n\nconst approved = ideas.filter(i => (i.verdict||'').toUpperCase().includes('APROBAR') || (i.score||0) >= 7);\n\nif(approved.length === 0) return [{json:{_skip:true, _msg:'No approved ideas'}}];\n\nreturn approved.map(idea => ({json:{\n  title: idea.title || 'Sin titulo',\n  description: idea.description || '',\n  key_message: idea.key_message || '',\n  content_type: idea.content_type || 'hot_take',\n  source: 'agent',\n  status: 'idea',\n  priority: (idea.score||0) >= 8 ? 'high' : 'medium',\n  platform: idea.platform || platform,\n  user_id: userId\n}}));"
+      }
+    },
+    {
+      "id": "sb-insert",
+      "name": "Save Ideas",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2780, 400],
+      "parameters": {
+        "operation": "create",
+        "tableId": "content_ideas",
+        "dataToSend": "autoMapInputData"
+      },
+      "credentials": {
+        "supabaseApi": { "id": "Thn3jgEbbxPFD7d9", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "code-response",
+      "name": "Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3000, 400],
+      "parameters": {
+        "jsCode": "const saved = $('Save Ideas').all();\nreturn [{json:{\n  success: true,\n  saved: saved.length,\n  ideas: saved.map(i => ({title: i.json.title, id: i.json.id}))\n}}];"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Get Profile", "type": "main", "index": 0}]]
+    },
+    "Get Profile": {
+      "main": [[{"node": "Get Competitors", "type": "main", "index": 0}]]
+    },
+    "Get Competitors": {
+      "main": [[{"node": "Get Approved", "type": "main", "index": 0}]]
+    },
+    "Get Approved": {
+      "main": [[{"node": "Get Rejected", "type": "main", "index": 0}]]
+    },
+    "Get Rejected": {
+      "main": [[{"node": "Get Existing", "type": "main", "index": 0}]]
+    },
+    "Get Existing": {
+      "main": [[{"node": "Build Context", "type": "main", "index": 0}]]
+    },
+    "Build Context": {
+      "main": [[{"node": "Agente Investigador", "type": "main", "index": 0}]]
+    },
+    "Groq Investigador": {
+      "ai_languageModel": [[{"node": "Agente Investigador", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Agente Investigador": {
+      "main": [[{"node": "Prep Creativo", "type": "main", "index": 0}]]
+    },
+    "Prep Creativo": {
+      "main": [[{"node": "Agente Creativo", "type": "main", "index": 0}]]
+    },
+    "Groq Creativo": {
+      "ai_languageModel": [[{"node": "Agente Creativo", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Agente Creativo": {
+      "main": [[{"node": "Agente Validador", "type": "main", "index": 0}]]
+    },
+    "Groq Validador": {
+      "ai_languageModel": [[{"node": "Agente Validador", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Agente Validador": {
+      "main": [[{"node": "Parse Ideas", "type": "main", "index": 0}]]
+    },
+    "Parse Ideas": {
+      "main": [[{"node": "Save Ideas", "type": "main", "index": 0}]]
+    },
+    "Save Ideas": {
+      "main": [[{"node": "Response", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
