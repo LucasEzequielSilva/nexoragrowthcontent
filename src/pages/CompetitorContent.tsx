@@ -13,7 +13,13 @@ import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 
-const platformIcons: Record<string, any> = { youtube: Youtube, linkedin: Linkedin, twitter: Twitter, instagram: Instagram, tiktok: Music };
+const platformConfig: Record<string, { icon: any; color: string }> = {
+  youtube: { icon: Youtube, color: 'text-red-500' },
+  instagram: { icon: Instagram, color: 'text-pink-500' },
+  tiktok: { icon: Music, color: 'text-black dark:text-white' },
+  linkedin: { icon: Linkedin, color: 'text-blue-600' },
+  twitter: { icon: Twitter, color: 'text-sky-500' },
+};
 
 export default function CompetitorContentLog() {
   const { toast } = useToast();
@@ -112,12 +118,13 @@ export default function CompetitorContentLog() {
         {filtered.length === 0 ? (
           <Card><CardContent className="p-8 text-center text-muted-foreground">No hay contenido registrado todavía.</CardContent></Card>
         ) : filtered.map(c => {
-          const Icon = platformIcons[c.platform] || FileText;
+          const pCfg = platformConfig[c.platform] || { icon: FileText, color: 'text-muted-foreground' };
+          const Icon = pCfg.icon;
           const metrics = (c.engagement_metrics || {}) as Record<string, number>;
           return (
             <Card key={c.id} className="cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setSelected(c)}>
               <CardContent className="p-4 flex items-center gap-4">
-                <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
+                <Icon className={`h-5 w-5 shrink-0 ${pCfg.color}`} />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{c.title}</p>
                   <p className="text-xs text-muted-foreground">{(c as any).competitors?.name} · {c.published_at ? new Date(c.published_at).toLocaleDateString() : 'Sin fecha'}</p>

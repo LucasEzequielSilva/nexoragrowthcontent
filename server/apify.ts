@@ -8,6 +8,7 @@
  *   YouTube:   67Q6fmd8iedTVcCwY (fast youtube channel scraper)
  */
 import dotenv from 'dotenv';
+import { getYoutubeTranscript } from './scraper.js';
 dotenv.config();
 
 const APIFY_TOKEN = process.env.APIFY_TOKEN;
@@ -157,6 +158,15 @@ export async function scrapeYouTube(channelUrl: string, maxPosts = 20): Promise<
     const views = entry.match(/<media:statistics views="(\d+)"/)?.[1];
     const likes = entry.match(/<media:starRating.*?count="(\d+)"/)?.[1];
 
+    // Try to get transcript
+    let transcript = '';
+    try {
+      const result = await getYoutubeTranscript(videoId);
+      transcript = result.text;
+    } catch {
+      // No transcript available (private, no captions, etc.) — continue without it
+    }
+
     entries.push({
       title: title.slice(0, 200),
       url: `https://www.youtube.com/watch?v=${videoId}`,
@@ -166,7 +176,7 @@ export async function scrapeYouTube(channelUrl: string, maxPosts = 20): Promise<
         views: views ? parseInt(views) : 0,
         likes: likes ? parseInt(likes) : 0,
       },
-      content_body: '',
+      content_body: transcript,
     });
   }
 
