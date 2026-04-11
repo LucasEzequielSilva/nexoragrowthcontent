@@ -58,10 +58,10 @@ export function AppSidebar() {
                   <NavLink
                     to={item.url}
                     end={item.url === '/'}
-                    className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-white/70 hover:text-foreground"
-                    activeClassName="bg-white text-foreground font-semibold border border-black/[0.12] shadow-[0_1px_2px_rgba(0,0,0,0.015)]"
+                    className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
+                    activeClassName="bg-accent text-foreground font-semibold border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
                   >
-                    <Icon className={`h-[18px] w-[18px] shrink-0 transition-all duration-200 ${isActive ? 'text-primary brightness-110 drop-shadow-[0_1px_3px_rgba(251,146,60,0.4)]' : 'text-muted-foreground/50 group-hover:text-muted-foreground'}`} />
+                    <Icon className={`h-[18px] w-[18px] shrink-0 transition-all duration-200 ${isActive ? 'text-primary brightness-110 drop-shadow-[0_1px_3px_rgba(16,185,129,0.5)]' : 'text-muted-foreground/50 group-hover:text-muted-foreground'}`} />
                     {!collapsed && <span>{item.title}</span>}
                   </NavLink>
                 </SidebarMenuButton>
@@ -94,7 +94,7 @@ export function AppSidebar() {
             </div>
             <div className="flex flex-1 items-center justify-between">
               <span className="text-sm font-bold tracking-tight text-foreground">Nexora</span>
-              <button onClick={toggleSidebar} className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-black/[0.12] shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-muted-foreground hover:text-foreground transition-all duration-200">
+              <button onClick={toggleSidebar} className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)] text-muted-foreground hover:text-foreground transition-all duration-200">
                 <CollapseIcon />
               </button>
             </div>
@@ -113,10 +113,10 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={isSettingsActive}>
               <NavLink
                 to="/settings"
-                className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-white/70 hover:text-foreground"
-                activeClassName="bg-white text-foreground font-semibold border border-black/[0.12] shadow-[0_1px_2px_rgba(0,0,0,0.015)]"
+                className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
+                activeClassName="bg-accent text-foreground font-semibold border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
               >
-                <Cog6ToothIcon className={`h-[18px] w-[18px] shrink-0 transition-all duration-200 ${isSettingsActive ? 'text-primary brightness-110 drop-shadow-[0_1px_3px_rgba(251,146,60,0.4)]' : 'text-muted-foreground/50 group-hover:text-muted-foreground'}`} />
+                <Cog6ToothIcon className={`h-[18px] w-[18px] shrink-0 transition-all duration-200 ${isSettingsActive ? 'text-primary brightness-110 drop-shadow-[0_1px_3px_rgba(16,185,129,0.5)]' : 'text-muted-foreground/50 group-hover:text-muted-foreground'}`} />
                 {!collapsed && <span>Configuración</span>}
               </NavLink>
             </SidebarMenuButton>

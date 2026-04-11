@@ -180,7 +180,7 @@ export function AccountSwitcher({ collapsed = false }: Props) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-accent/50 transition-colors bg-white border border-black/[0.12] shadow-[0_1px_2px_rgba(0,0,0,0.015)]">
+          <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-accent/50 transition-colors bg-accent border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
             <Avatar className="h-8 w-8 shrink-0">
               <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">{getInitials(currentEmail)}</AvatarFallback>
             </Avatar>

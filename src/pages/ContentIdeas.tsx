@@ -132,13 +132,13 @@ export default function ContentIdeas() {
         <div className="flex bg-muted rounded-xl p-0.5 border border-border/60">
           <button
             onClick={() => setView('kanban')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${view === 'kanban' ? 'bg-white border border-border shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${view === 'kanban' ? 'bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <ViewColumnsIcon className="h-4 w-4" /> Kanban
           </button>
           <button
             onClick={() => setView('list')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${view === 'list' ? 'bg-white border border-border shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${view === 'list' ? 'bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,0.015)] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <ListBulletIcon className="h-4 w-4" /> Lista
           </button>
