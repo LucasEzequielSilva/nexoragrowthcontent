@@ -15,6 +15,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { KanbanBoard, kanbanStatuses, statusConfig } from '@/components/KanbanBoard';
 import type { ComponentType, SVGProps } from 'react';
@@ -25,6 +26,7 @@ const priorityLabels: Record<string, string> = { high: 'Alta', medium: 'Media', 
 
 export default function ContentIdeas() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [ideas, setIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -76,7 +78,7 @@ export default function ContentIdeas() {
       const res = await fetch('https://n8n.raquelrodriguez.com.ar/webhook/nexora-ideas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: genCount, platform: genPlatform }),
+        body: JSON.stringify({ count: genCount, platform: genPlatform, user_id: user?.id }),
       });
       const result = await res.json();
 
