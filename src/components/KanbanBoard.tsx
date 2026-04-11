@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   PlusIcon, DocumentTextIcon, PlayIcon, ShareIcon, PaperAirplaneIcon,
 } from '@heroicons/react/24/solid';
-import { Loader2, PenTool } from 'lucide-react';
+import { Loader2, PenTool, BarChart3, Eye, Heart, MessageCircle, Share2, Bookmark } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 import type { ComponentType, SVGProps } from 'react';
@@ -322,6 +323,82 @@ export function KanbanBoard({ ideas, setIdeas, columnWidth = 220, maxCards = 0, 
                     </div>
                   )}
                 </div>
+
+                {/* Performance Metrics — visible for scheduled & published */}
+                {(selectedIdea.status === 'published' || selectedIdea.status === 'scheduled') && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                      <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">Metricas de rendimiento</label>
+                    </div>
+
+                    {selectedIdea.published_url !== undefined && (
+                      <div className="mb-3">
+                        <Label className="text-[12px] text-muted-foreground">URL publicado</Label>
+                        <Input
+                          placeholder="https://..."
+                          value={selectedIdea.published_url || ''}
+                          onChange={(e) => updateIdea(selectedIdea.id, { published_url: e.target.value || null })}
+                        />
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { key: 'views', icon: Eye, label: 'Views', placeholder: '0' },
+                        { key: 'likes', icon: Heart, label: 'Likes', placeholder: '0' },
+                        { key: 'comments', icon: MessageCircle, label: 'Comments', placeholder: '0' },
+                        { key: 'shares', icon: Share2, label: 'Shares', placeholder: '0' },
+                        { key: 'saves', icon: Bookmark, label: 'Saves', placeholder: '0' },
+                      ].map(({ key, icon: Icon, label, placeholder }) => (
+                        <div key={key} className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                            <Icon className="h-3 w-3" /> {label}
+                          </Label>
+                          <Input
+                            type="number"
+                            placeholder={placeholder}
+                            className="h-8 text-[13px]"
+                            value={(selectedIdea.performance as any)?.[key] ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value ? Number(e.target.value) : undefined;
+                              const perf = { ...(selectedIdea.performance as any || {}), [key]: val };
+                              updateIdea(selectedIdea.id, { performance: perf });
+                            }}
+                          />
+                        </div>
+                      ))}
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">Leads</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          className="h-8 text-[13px]"
+                          value={(selectedIdea.performance as any)?.leads ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value ? Number(e.target.value) : undefined;
+                            const perf = { ...(selectedIdea.performance as any || {}), leads: val };
+                            updateIdea(selectedIdea.id, { performance: perf });
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick performance summary if data exists */}
+                    {selectedIdea.performance && Object.values(selectedIdea.performance as any).some((v: any) => v > 0) && (
+                      <div className="mt-3 p-2.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <p className="text-[11px] text-emerald-700 font-medium">
+                          {(() => {
+                            const p = selectedIdea.performance as any;
+                            const engagement = (p.likes || 0) + (p.comments || 0) + (p.shares || 0) + (p.saves || 0);
+                            const rate = p.views > 0 ? ((engagement / p.views) * 100).toFixed(1) : '—';
+                            return `Engagement rate: ${rate}% · ${engagement.toLocaleString()} interacciones`;
+                          })()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-2 border-t border-border/40">

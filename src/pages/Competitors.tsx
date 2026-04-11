@@ -11,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   UserGroupIcon, MagnifyingGlassIcon, PlusIcon,
 } from '@heroicons/react/24/solid';
-import { PlayIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
+import { PlayIcon, ChatBubbleLeftIcon, PencilIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 
 const tierConfig: Record<string, { label: string; class: string }> = {
   tier_1: { label: 'Tier 1', class: 'bg-primary/10 text-primary' },
@@ -41,8 +43,11 @@ export default function Competitors() {
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [selected, setSelected] = useState<any | null>(null);
+  const [editing, setEditing] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [deleting, setDeleting] = useState(false);
+  const [scraping, setScraping] = useState<string | null>(null); // platform being scraped or 'all'
 
   const fetchCompetitors = async () => {
     const { data } = await supabase.from('competitors').select('*').order('created_at', { ascending: false });
@@ -83,6 +88,91 @@ export default function Competitors() {
     setShowNew(false);
     setForm(EMPTY_FORM);
     fetchCompetitors();
+  };
+
+  const startEditing = (comp: any) => {
+    const platforms = (comp.platforms || {}) as Record<string, string>;
+    setForm({
+      name: comp.name || '',
+      agency_name: comp.agency_name || '',
+      content_style: comp.content_style || '',
+      what_they_sell: comp.what_they_sell || '',
+      frequency: comp.frequency || '',
+      notes: comp.notes || '',
+      tier: comp.tier || 'tier_1',
+      youtube_url: platforms.youtube || '',
+      instagram_url: platforms.instagram || '',
+      twitter_url: platforms.twitter || '',
+      linkedin_url: platforms.linkedin || '',
+      tiktok_url: platforms.tiktok || '',
+    });
+    setEditing(true);
+  };
+
+  const updateCompetitor = async () => {
+    if (!selected) return;
+    const platforms: Record<string, string> = {};
+    if (form.youtube_url) platforms.youtube = form.youtube_url;
+    if (form.instagram_url) platforms.instagram = form.instagram_url;
+    if (form.twitter_url) platforms.twitter = form.twitter_url;
+    if (form.linkedin_url) platforms.linkedin = form.linkedin_url;
+    if (form.tiktok_url) platforms.tiktok = form.tiktok_url;
+
+    const { error } = await supabase.from('competitors').update({
+      name: form.name,
+      agency_name: form.agency_name || null,
+      content_style: form.content_style || null,
+      what_they_sell: form.what_they_sell || null,
+      frequency: form.frequency || null,
+      notes: form.notes || null,
+      tier: form.tier,
+      platforms,
+    }).eq('id', selected.id);
+
+    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Competidor actualizado' });
+    setEditing(false);
+    setSelected(null);
+    setForm(EMPTY_FORM);
+    fetchCompetitors();
+  };
+
+  const deleteCompetitor = async () => {
+    if (!selected) return;
+    const { error } = await supabase.from('competitors').delete().eq('id', selected.id);
+    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Competidor eliminado' });
+    setSelected(null);
+    setDeleting(false);
+    fetchCompetitors();
+  };
+
+  const handleScrape = async (competitorId: string, platform?: string) => {
+    const label = platform || 'todas las plataformas';
+    setScraping(platform || 'all');
+    try {
+      const res = platform
+        ? await api.scrapeCompetitor(competitorId, platform)
+        : await api.scrapeAll(competitorId);
+
+      if (res.error) {
+        toast({ title: 'Error de scraping', description: res.error, variant: 'destructive' });
+      } else if (platform) {
+        toast({
+          title: `Scraping de ${platform} completado`,
+          description: `${res.inserted} nuevos contenidos (${res.duplicates_skipped || 0} duplicados omitidos)`,
+        });
+      } else {
+        const summary = Object.entries(res.results || {})
+          .map(([p, r]: [string, any]) => r.error ? `${p}: error` : `${p}: +${r.inserted}`)
+          .join(', ');
+        toast({ title: 'Scraping completado', description: summary });
+      }
+      fetchCompetitors();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+    setScraping(null);
   };
 
   const platformCount = (platforms: Record<string, string>) => Object.keys(platforms || {}).length;
@@ -179,10 +269,10 @@ export default function Competitors() {
         </motion.div>
       )}
 
-      {/* Detail Dialog */}
-      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
+      {/* Detail / Edit Dialog */}
+      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setEditing(false); setDeleting(false); setForm(EMPTY_FORM); } }}>
         <DialogContent className="max-w-lg">
-          {selected && (
+          {selected && !editing && !deleting && (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-3">
@@ -241,7 +331,7 @@ export default function Competitors() {
                 )}
                 {selected.what_they_sell && (
                   <div>
-                    <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Qué venden</p>
+                    <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Que venden</p>
                     <p className="text-[14px]">{selected.what_they_sell}</p>
                   </div>
                 )}
@@ -257,6 +347,126 @@ export default function Competitors() {
                     <p className="text-[14px] text-muted-foreground">{selected.notes}</p>
                   </div>
                 )}
+
+                {/* Scraping */}
+                {(() => {
+                  const scrapablePlatforms = Object.keys((selected.platforms || {}) as Record<string, string>)
+                    .filter(p => ['instagram', 'tiktok', 'youtube'].includes(p));
+                  if (scrapablePlatforms.length === 0) return null;
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">Escanear contenido</p>
+                      <div className="flex flex-wrap gap-2">
+                        {scrapablePlatforms.map(p => (
+                          <Button
+                            key={p}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 capitalize"
+                            disabled={!!scraping}
+                            onClick={() => handleScrape(selected.id, p)}
+                          >
+                            {scraping === p ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowPathIcon className="h-3.5 w-3.5" />}
+                            {p}
+                          </Button>
+                        ))}
+                        {scrapablePlatforms.length > 1 && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={!!scraping}
+                            onClick={() => handleScrape(selected.id)}
+                          >
+                            {scraping === 'all' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowPathIcon className="h-3.5 w-3.5" />}
+                            Escanear todo
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Action buttons */}
+                <div className="flex gap-2 pt-2 border-t">
+                  <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={() => startEditing(selected)}>
+                    <PencilIcon className="h-4 w-4" /> Editar
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleting(true)}>
+                    <TrashIcon className="h-4 w-4" /> Eliminar
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Edit mode */}
+          {selected && editing && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Editar Competidor</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <Input placeholder="Nombre *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                  <Input placeholder="Agencia / Proyecto" value={form.agency_name} onChange={(e) => setForm({ ...form, agency_name: e.target.value })} />
+                </div>
+                <div>
+                  <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Perfiles</p>
+                  <div className="space-y-2">
+                    <Input placeholder="YouTube — URL o @handle" value={form.youtube_url} onChange={(e) => setForm({ ...form, youtube_url: e.target.value })} />
+                    <Input placeholder="Instagram — URL del perfil" value={form.instagram_url} onChange={(e) => setForm({ ...form, instagram_url: e.target.value })} />
+                    <Input placeholder="X (Twitter) — URL del perfil" value={form.twitter_url} onChange={(e) => setForm({ ...form, twitter_url: e.target.value })} />
+                    <Input placeholder="LinkedIn — URL del perfil" value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} />
+                    <Input placeholder="TikTok — URL del perfil" value={form.tiktok_url} onChange={(e) => setForm({ ...form, tiktok_url: e.target.value })} />
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <Input placeholder="Estilo de contenido" value={form.content_style} onChange={(e) => setForm({ ...form, content_style: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input placeholder="Que venden" value={form.what_they_sell} onChange={(e) => setForm({ ...form, what_they_sell: e.target.value })} />
+                    <Input placeholder="Frecuencia" value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })} />
+                  </div>
+                  <Textarea placeholder="Notas internas" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
+                  <Select value={form.tier} onValueChange={(v) => setForm({ ...form, tier: v })}>
+                    <SelectTrigger><SelectValue placeholder="Tier" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tier_1">Tier 1 — Competidor directo</SelectItem>
+                      <SelectItem value="tier_2">Tier 2 — Referencia de formato</SelectItem>
+                      <SelectItem value="tier_3">Tier 3 — Referencia tangencial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => { setEditing(false); setForm(EMPTY_FORM); }}>
+                    Cancelar
+                  </Button>
+                  <Button className="flex-1" onClick={updateCompetitor} disabled={!form.name}>
+                    Guardar cambios
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Delete confirmation */}
+          {selected && deleting && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Eliminar competidor</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-[14px] text-muted-foreground">
+                  Estas seguro de que queres eliminar a <span className="font-semibold text-foreground">{selected.name}</span>? Esto tambien eliminara todo su contenido asociado. Esta accion no se puede deshacer.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setDeleting(false)}>
+                    Cancelar
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={deleteCompetitor}>
+                    Si, eliminar
+                  </Button>
+                </div>
               </div>
             </>
           )}

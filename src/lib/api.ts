@@ -17,5 +17,16 @@ export const api = {
   generateIdea: (pillar?: string, platform?: string) => apiCall('/api/generate-idea', { pillar, platform }),
   generateDraft: (ideaId: string) => apiCall('/api/generate-draft', { ideaId }),
   generateCarousel: (title: string, slideCount: number) => apiCall('/api/generate-carousel', { title, slideCount }),
+  scrapeCompetitor: (competitorId: string, platform: string, maxPosts = 20) =>
+    apiCall('/api/scrape-competitor', { competitorId, platform, maxPosts }),
+  scrapeAll: (competitorId: string, maxPosts = 15) =>
+    apiCall('/api/scrape-all', { competitorId, maxPosts }),
+  getBusinessProfile: () => apiCall('/api/business-profile'),
+  saveBusinessProfile: (profile: any) =>
+    fetch(`${API_URL}/api/business-profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    }).then(r => r.json()),
   health: () => apiCall('/api/health'),
 };

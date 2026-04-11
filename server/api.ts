@@ -9,6 +9,7 @@ import express from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { scrapeCompetitor } from './apify.js';
 
 dotenv.config();
 
@@ -41,6 +42,32 @@ async function callGroq(messages: any[], temperature = 0.3) {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
   return JSON.parse(data.choices[0].message.content || '{}');
+}
+
+// Helper: obtener contexto del negocio para prompts AI
+async function getBusinessContext(): Promise<string> {
+  const { data } = await supabase
+    .from('business_profile')
+    .select('*')
+    .limit(1)
+    .single();
+
+  if (!data) return 'Nexora — agencia AI-native de MVPs en Argentina.';
+
+  const parts = [
+    data.brand_name && `Marca: ${data.brand_name}`,
+    data.tagline && `Tagline: ${data.tagline}`,
+    data.services && `Servicios: ${data.services}`,
+    data.price_range && `Rango de precios: ${data.price_range}`,
+    data.ideal_client && `Cliente ideal: ${data.ideal_client}`,
+    data.differentiator && `Diferenciador: ${data.differentiator}`,
+    data.tone_and_style && `Tono y estilo: ${data.tone_and_style}`,
+    data.brand_story && `Historia: ${data.brand_story}`,
+    data.goals && `Objetivos: ${data.goals}`,
+    data.avoid_topics && `Evitar: ${data.avoid_topics}`,
+  ].filter(Boolean);
+
+  return parts.join('\n');
 }
 
 // ==========================================
@@ -133,6 +160,8 @@ app.post('/api/generate-brief', async (req, res) => {
       tags: c.tags || [],
     }));
 
+    const businessContext = await getBusinessContext();
+
     const brief = await callGroq([
       {
         role: 'system',
@@ -140,9 +169,11 @@ app.post('/api/generate-brief', async (req, res) => {
 Analizá contenido de competidores y generá:
 1. Highlights (qué publicaron y por qué importa)
 2. Temas trending
-3. 3-5 ideas de contenido para Lucas enfocadas en PRODUCTO/MVP (NO tutoriales de herramientas)
+3. 3-5 ideas de contenido enfocadas en el negocio (NO tutoriales genéricos de herramientas)
 
-Lucas es experto en producto en Argentina, construye MVPs con AI para founders.
+Contexto del negocio:
+${businessContext}
+
 Respondé en español (LATAM) en JSON con: competitor_highlights (array con {competitor, title, insight}), trending_topics (array strings), suggested_content (array con {title, platform, pillar, rationale}).`
       },
       {
@@ -195,13 +226,16 @@ app.post('/api/generate-idea', async (req, res) => {
     const context = (recentContent || []).map(c => `${c.title}: ${c.analysis_notes}`).join('\n');
     const existing = (existingIdeas || []).map(i => i.title);
 
+    const businessContext = await getBusinessContext();
+
     const result = await callGroq([
       {
         role: 'system',
-        content: `Sos el estratega de contenido de Lucas para Nexora (waves.builders), agencia AI-native de MVPs en Argentina.
-Lucas es EXPERTO EN PRODUCTO, no un vibe coder. Su contenido lo posiciona como genio en MVPs y productos digitales.
-ICP: founders early-stage en LATAM que necesitan un MVP.
-El contenido tiene que atraer clientes high-ticket ($5K-15K MVPs), no estudiantes.
+        content: `Sos el estratega de contenido para el siguiente negocio. Tu trabajo es generar ideas que posicionen a la marca y atraigan clientes ideales.
+
+Contexto del negocio:
+${businessContext}
+
 Respondé en español (LATAM) en JSON con: title, description, key_message, content_type, draft_outline.`
       },
       {
@@ -247,13 +281,18 @@ app.post('/api/generate-draft', async (req, res) => {
 
     const context = (related || []).map(r => `${r.title}: ${r.summary}`).join('\n');
 
+    const businessContext = await getBusinessContext();
+
     const result = await callGroq([
       {
         role: 'system',
-        content: `Sos el escritor de contenido de Lucas para Nexora.
-Lucas es experto en producto/MVP en Argentina. Tono: directo, práctico, sin bullshit, argentino.
+        content: `Sos el escritor de contenido para el siguiente negocio.
 Escribí el borrador completo del contenido. Si es video/YouTube: guion con intro, desarrollo, cierre.
 Si es tweet/thread: texto listo para publicar. Si es LinkedIn: post completo.
+
+Contexto del negocio:
+${businessContext}
+
 Respondé en JSON con: draft (string con el contenido completo), hooks (array de 3 opciones de gancho/intro), cta (call to action sugerido).`
       },
       {
@@ -295,12 +334,15 @@ app.post('/api/generate-carousel', async (req, res) => {
 
     if (!title) return res.status(400).json({ error: 'Falta el título del carrusel' });
 
+    const businessContext = await getBusinessContext();
+
     const result = await callGroq([
       {
         role: 'system',
-        content: `Sos el copywriter de Lucas para Nexora (waves.builders), agencia AI-native de MVPs en Argentina.
-Lucas es EXPERTO EN PRODUCTO/MVP. Su contenido atrae founders que necesitan MVPs ($5K-15K).
-Tono: directo, práctico, sin bullshit, argentino.
+        content: `Sos el copywriter para el siguiente negocio.
+
+Contexto del negocio:
+${businessContext}
 
 Generá el copy completo para un carrusel de ${slideCount} slides.
 El primer slide es el COVER (gancho que frena el scroll).
@@ -326,6 +368,246 @@ Respondé en español (LATAM) en JSON con: slides (array de objetos con {slide_t
 });
 
 // ==========================================
+// GET /api/business-profile — Obtener perfil de negocio
+// ==========================================
+app.get('/api/business-profile', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('business_profile')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (error && error.code === 'PGRST116') {
+      // No profile yet — return empty
+      return res.json({ profile: null });
+    }
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.json({ profile: data });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// PUT /api/business-profile — Guardar/actualizar perfil de negocio
+// ==========================================
+app.put('/api/business-profile', async (req, res) => {
+  try {
+    const profile = req.body;
+
+    if (profile.id) {
+      // Update existing
+      const { data, error } = await supabase
+        .from('business_profile')
+        .update(profile)
+        .eq('id', profile.id)
+        .select()
+        .single();
+
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ profile: data });
+    }
+
+    // Insert new
+    const { data, error } = await supabase
+      .from('business_profile')
+      .insert(profile)
+      .select()
+      .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ profile: data });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// POST /api/scrape-competitor — Scraping de contenido con Apify
+// ==========================================
+app.post('/api/scrape-competitor', async (req, res) => {
+  try {
+    const { competitorId, platform, maxPosts = 20 } = req.body;
+
+    if (!competitorId || !platform) {
+      return res.status(400).json({ error: 'Faltan competitorId y platform' });
+    }
+
+    // Get competitor and their platform URL
+    const { data: competitor, error: compError } = await supabase
+      .from('competitors')
+      .select('*')
+      .eq('id', competitorId)
+      .single();
+
+    if (compError || !competitor) {
+      return res.status(404).json({ error: 'Competidor no encontrado' });
+    }
+
+    const platforms = (competitor.platforms || {}) as Record<string, string>;
+    const profileUrl = platforms[platform];
+
+    if (!profileUrl) {
+      return res.status(400).json({
+        error: `El competidor "${competitor.name}" no tiene perfil de ${platform} configurado`
+      });
+    }
+
+    // Scrape with Apify
+    const scraped = await scrapeCompetitor(platform, profileUrl, maxPosts);
+
+    if (scraped.length === 0) {
+      return res.json({ success: true, inserted: 0, message: 'No se encontró contenido nuevo' });
+    }
+
+    // Get existing URLs to avoid duplicates
+    const { data: existing } = await supabase
+      .from('competitor_content')
+      .select('url')
+      .eq('competitor_id', competitorId)
+      .eq('platform', platform);
+
+    const existingUrls = new Set((existing || []).map(e => e.url));
+
+    // Filter out duplicates and insert new content
+    const newContent = scraped
+      .filter(item => item.url && !existingUrls.has(item.url))
+      .map(item => ({
+        competitor_id: competitorId,
+        platform: item.platform,
+        title: item.title || 'Sin título',
+        url: item.url,
+        content_body: item.content_body || null,
+        engagement_metrics: item.engagement_metrics,
+        published_at: item.published_at,
+        tags: [],
+        is_analyzed: false,
+      }));
+
+    if (newContent.length === 0) {
+      return res.json({ success: true, inserted: 0, message: 'Todo el contenido ya estaba cargado' });
+    }
+
+    const { error: insertError } = await supabase
+      .from('competitor_content')
+      .insert(newContent);
+
+    if (insertError) {
+      return res.status(500).json({ error: insertError.message });
+    }
+
+    // Update competitor audience_size with latest metrics
+    const totalEngagement = scraped.reduce((acc, item) => {
+      return {
+        ...acc,
+        avg_likes: (acc.avg_likes || 0) + (item.engagement_metrics.likes || 0),
+        avg_views: (acc.avg_views || 0) + (item.engagement_metrics.views || 0),
+      };
+    }, {} as Record<string, number>);
+
+    const count = scraped.length;
+    const audienceUpdate = {
+      ...(competitor.audience_size as Record<string, any> || {}),
+      [`${platform}_avg_likes`]: Math.round((totalEngagement.avg_likes || 0) / count),
+      [`${platform}_avg_views`]: Math.round((totalEngagement.avg_views || 0) / count),
+      [`${platform}_last_scraped`]: new Date().toISOString(),
+    };
+
+    await supabase
+      .from('competitors')
+      .update({ audience_size: audienceUpdate })
+      .eq('id', competitorId);
+
+    res.json({
+      success: true,
+      inserted: newContent.length,
+      total_scraped: scraped.length,
+      duplicates_skipped: scraped.length - newContent.length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// POST /api/scrape-all — Scraping de todas las plataformas de un competidor
+// ==========================================
+app.post('/api/scrape-all', async (req, res) => {
+  try {
+    const { competitorId, maxPosts = 15 } = req.body;
+
+    if (!competitorId) {
+      return res.status(400).json({ error: 'Falta competitorId' });
+    }
+
+    const { data: competitor, error: compError } = await supabase
+      .from('competitors')
+      .select('*')
+      .eq('id', competitorId)
+      .single();
+
+    if (compError || !competitor) {
+      return res.status(404).json({ error: 'Competidor no encontrado' });
+    }
+
+    const platforms = (competitor.platforms || {}) as Record<string, string>;
+    const supportedPlatforms = ['instagram', 'tiktok', 'youtube'];
+    const toScrape = Object.keys(platforms).filter(p => supportedPlatforms.includes(p) && platforms[p]);
+
+    if (toScrape.length === 0) {
+      return res.status(400).json({
+        error: `${competitor.name} no tiene plataformas soportadas para scraping (instagram, tiktok, youtube)`
+      });
+    }
+
+    const results: Record<string, any> = {};
+
+    for (const platform of toScrape) {
+      try {
+        // Call scrape-competitor logic inline
+        const scraped = await scrapeCompetitor(platform, platforms[platform], maxPosts);
+
+        const { data: existing } = await supabase
+          .from('competitor_content')
+          .select('url')
+          .eq('competitor_id', competitorId)
+          .eq('platform', platform);
+
+        const existingUrls = new Set((existing || []).map(e => e.url));
+
+        const newContent = scraped
+          .filter(item => item.url && !existingUrls.has(item.url))
+          .map(item => ({
+            competitor_id: competitorId,
+            platform: item.platform,
+            title: item.title || 'Sin título',
+            url: item.url,
+            content_body: item.content_body || null,
+            engagement_metrics: item.engagement_metrics,
+            published_at: item.published_at,
+            tags: [],
+            is_analyzed: false,
+          }));
+
+        if (newContent.length > 0) {
+          await supabase.from('competitor_content').insert(newContent);
+        }
+
+        results[platform] = { scraped: scraped.length, inserted: newContent.length };
+      } catch (err: any) {
+        results[platform] = { error: err.message };
+      }
+    }
+
+    res.json({ success: true, competitor: competitor.name, results });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
 // GET /api/health — Health check
 // ==========================================
 app.get('/api/health', (_, res) => {
@@ -336,9 +618,14 @@ const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`\n🚀 Nexora Content Engine API corriendo en http://localhost:${PORT}`);
   console.log(`\n   Endpoints:`);
-  console.log(`   POST /api/analyze          → Analizar contenido de competidor`);
-  console.log(`   POST /api/generate-brief   → Generar brief semanal`);
-  console.log(`   POST /api/generate-idea    → Generar idea de contenido`);
-  console.log(`   POST /api/generate-draft   → Generar borrador para una idea`);
-  console.log(`   GET  /api/health           → Health check\n`);
+  console.log(`   POST /api/analyze            → Analizar contenido de competidor`);
+  console.log(`   POST /api/generate-brief     → Generar brief semanal`);
+  console.log(`   POST /api/generate-idea      → Generar idea de contenido`);
+  console.log(`   POST /api/generate-draft     → Generar borrador para una idea`);
+  console.log(`   POST /api/generate-carousel  → Generar copy para carrusel`);
+  console.log(`   POST /api/scrape-competitor  → Scraping de una plataforma`);
+  console.log(`   POST /api/scrape-all         → Scraping de todas las plataformas`);
+  console.log(`   GET  /api/business-profile   → Obtener perfil de negocio`);
+  console.log(`   PUT  /api/business-profile   → Guardar perfil de negocio`);
+  console.log(`   GET  /api/health             → Health check\n`);
 });

@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_profile: {
+        Row: {
+          id: string
+          user_id: string
+          brand_name: string
+          tagline: string | null
+          services: string | null
+          price_range: string | null
+          ideal_client: string | null
+          differentiator: string | null
+          tone_and_style: string | null
+          brand_story: string | null
+          platforms: Json | null
+          goals: string | null
+          avoid_topics: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          brand_name?: string
+          tagline?: string | null
+          services?: string | null
+          price_range?: string | null
+          ideal_client?: string | null
+          differentiator?: string | null
+          tone_and_style?: string | null
+          brand_story?: string | null
+          platforms?: Json | null
+          goals?: string | null
+          avoid_topics?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          brand_name?: string
+          tagline?: string | null
+          services?: string | null
+          price_range?: string | null
+          ideal_client?: string | null
+          differentiator?: string | null
+          tone_and_style?: string | null
+          brand_story?: string | null
+          platforms?: Json | null
+          goals?: string | null
+          avoid_topics?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       competitor_content: {
         Row: {
           analysis_notes: string | null
