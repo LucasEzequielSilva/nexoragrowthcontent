@@ -1,6 +1,11 @@
 /**
  * Apify integration — scrape competitor content from social platforms
  * Uses Apify REST API directly (no SDK dependency)
+ *
+ * Actor IDs (verified):
+ *   Instagram: shu8hvrXbJbY3Eb9W (apify/instagram-scraper)
+ *   TikTok:    OtzYfK1ndEGdwWFKQ (clockworks/free-tiktok-scraper)
+ *   YouTube:   67Q6fmd8iedTVcCwY (fast youtube channel scraper)
  */
 import dotenv from 'dotenv';
 dotenv.config();
@@ -24,12 +29,11 @@ interface ScrapedContent {
 }
 
 // Generic: run an Apify actor and wait for results
-async function runActor(actorId: string, input: Record<string, any>): Promise<any[]> {
+async function runActor(actorId: string, input: Record<string, any>, timeoutSecs = 120): Promise<any[]> {
   if (!APIFY_TOKEN) throw new Error('APIFY_TOKEN no configurado. Agregalo al .env');
 
-  // Start actor run and wait for it to finish (synchronous call, up to 120s)
   const res = await fetch(
-    `${APIFY_BASE}/acts/${actorId}/run-sync-get-dataset-items?token=${APIFY_TOKEN}`,
+    `${APIFY_BASE}/acts/${actorId}/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=${timeoutSecs}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -39,7 +43,7 @@ async function runActor(actorId: string, input: Record<string, any>): Promise<an
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Apify error (${actorId}): ${res.status} — ${err}`);
+    throw new Error(`Apify error (${actorId}): ${res.status} — ${err.slice(0, 300)}`);
   }
 
   return res.json();
@@ -49,24 +53,24 @@ async function runActor(actorId: string, input: Record<string, any>): Promise<an
 // Instagram — scrape recent posts from a profile
 // ==========================================
 export async function scrapeInstagram(profileUrl: string, maxPosts = 20): Promise<ScrapedContent[]> {
-  // Extract username from URL
   const username = profileUrl
     .replace(/\/$/, '')
     .split('/')
     .pop()
     ?.replace('@', '') || profileUrl;
 
-  const items = await runActor('apify~instagram-post-collector', {
-    username: [username],
+  const items = await runActor('shu8hvrXbJbY3Eb9W', {
+    directUrls: [`https://www.instagram.com/${username}/`],
+    resultsType: 'posts',
     resultsLimit: maxPosts,
   });
 
   return items.map((item: any) => ({
     title: (item.caption || item.alt || '').slice(0, 200),
-    url: item.url || item.shortCode ? `https://www.instagram.com/p/${item.shortCode}/` : '',
+    url: item.url || (item.shortCode ? `https://www.instagram.com/p/${item.shortCode}/` : ''),
     platform: 'instagram',
-    published_at: item.timestamp || item.takenAtTimestamp
-      ? new Date((item.timestamp || item.takenAtTimestamp) * 1000).toISOString()
+    published_at: item.timestamp
+      ? new Date(item.timestamp).toISOString()
       : null,
     engagement_metrics: {
       likes: item.likesCount ?? item.likes ?? 0,
@@ -87,7 +91,7 @@ export async function scrapeTikTok(profileUrl: string, maxPosts = 20): Promise<S
     .pop()
     ?.replace('@', '') || profileUrl;
 
-  const items = await runActor('clockworks~free-tiktok-scraper', {
+  const items = await runActor('OtzYfK1ndEGdwWFKQ', {
     profiles: [`https://www.tiktok.com/@${username}`],
     resultsPerPage: maxPosts,
     shouldDownloadVideos: false,
@@ -111,35 +115,62 @@ export async function scrapeTikTok(profileUrl: string, maxPosts = 20): Promise<S
 }
 
 // ==========================================
-// YouTube — scrape recent videos with engagement data
+// YouTube — scrape via RSS feed (free, instant, no Apify credits)
 // ==========================================
 export async function scrapeYouTube(channelUrl: string, maxPosts = 20): Promise<ScrapedContent[]> {
-  // Accept URL or handle
-  const handle = channelUrl
-    .replace(/\/$/, '')
-    .split('/')
-    .pop()
-    ?.replace('@', '') || channelUrl;
+  // Extract handle from URL
+  let handle = channelUrl;
+  if (handle.includes('youtube.com')) {
+    handle = handle.replace(/\/$/, '').split('/').pop() || handle;
+  }
+  handle = handle.replace('@', '');
 
-  const items = await runActor('streamers~youtube-scraper', {
-    startUrls: [{ url: `https://www.youtube.com/@${handle}/videos` }],
-    maxResults: maxPosts,
-    maxResultsShorts: 0,
-    maxResultStreams: 0,
+  // First resolve handle to channel ID via page scrape
+  const pageRes = await fetch(`https://www.youtube.com/@${handle}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+    redirect: 'follow',
   });
+  const pageHtml = await pageRes.text();
+  const channelIdMatch =
+    pageHtml.match(/"channelId":"(UC[^"]+)"/) ||
+    pageHtml.match(/"externalId":"(UC[^"]+)"/) ||
+    pageHtml.match(/channel_id=(UC[^&"]+)/);
 
-  return items.map((item: any) => ({
-    title: (item.title || '').slice(0, 200),
-    url: item.url || (item.id ? `https://www.youtube.com/watch?v=${item.id}` : ''),
-    platform: 'youtube',
-    published_at: item.date || item.uploadDate || null,
-    engagement_metrics: {
-      likes: item.likes ?? 0,
-      comments: item.commentsCount ?? item.numberOfSubscribers ?? 0,
-      views: item.viewCount ?? item.views ?? 0,
-    },
-    content_body: item.description || item.text || '',
-  }));
+  if (!channelIdMatch) {
+    throw new Error(`No se pudo resolver el canal de YouTube para @${handle}`);
+  }
+
+  const channelId = channelIdMatch[1];
+  const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+  const feedRes = await fetch(feedUrl);
+  const xml = await feedRes.text();
+
+  const entries: ScrapedContent[] = [];
+  const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+  let match;
+
+  while ((match = entryRegex.exec(xml)) !== null && entries.length < maxPosts) {
+    const entry = match[1];
+    const videoId = entry.match(/<yt:videoId>(.*?)<\/yt:videoId>/)?.[1] || '';
+    const title = entry.match(/<title>(.*?)<\/title>/)?.[1] || '';
+    const published = entry.match(/<published>(.*?)<\/published>/)?.[1] || '';
+    const views = entry.match(/<media:statistics views="(\d+)"/)?.[1];
+    const likes = entry.match(/<media:starRating.*?count="(\d+)"/)?.[1];
+
+    entries.push({
+      title: title.slice(0, 200),
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      platform: 'youtube',
+      published_at: published || null,
+      engagement_metrics: {
+        views: views ? parseInt(views) : 0,
+        likes: likes ? parseInt(likes) : 0,
+      },
+      content_body: '',
+    });
+  }
+
+  return entries;
 }
 
 // ==========================================
