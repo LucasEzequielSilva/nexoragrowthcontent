@@ -37,6 +37,10 @@ export default function ContentIdeas() {
   const [newPriority, setNewPriority] = useState('medium');
   const [newType, setNewType] = useState('tutorial');
   const [generatingIdea, setGeneratingIdea] = useState(false);
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [genCount, setGenCount] = useState(5);
+  const [genPlatform, setGenPlatform] = useState('multi');
+  const [genProgress, setGenProgress] = useState(0);
 
   const fetchIdeas = async () => {
     const { data } = await supabase.from('content_ideas').select('*').order('created_at', { ascending: false });
@@ -64,22 +68,33 @@ export default function ContentIdeas() {
     fetchIdeas();
   };
 
-  const generateIdea = async () => {
+  const generateIdeas = async () => {
     setGeneratingIdea(true);
-    try {
-      const result = await api.generateIdea();
-      if (result.idea) {
-        await supabase.from('content_ideas').insert({
-          title: result.idea.title, description: result.idea.description || '',
-          key_message: result.idea.key_message || '', content_type: result.idea.content_type || 'hot_take',
-          source: 'agent', status: 'idea', priority: 'medium', platform: 'multi',
-        });
-        toast({ title: 'Idea generada con AI', description: result.idea.title });
-        fetchIdeas();
+    setGenProgress(0);
+    setShowGenerate(false);
+    let generated = 0;
+
+    for (let i = 0; i < genCount; i++) {
+      try {
+        setGenProgress(i + 1);
+        const result = await api.generateIdea(undefined, genPlatform !== 'multi' ? genPlatform : undefined);
+        if (result.idea) {
+          await supabase.from('content_ideas').insert({
+            title: result.idea.title, description: result.idea.description || '',
+            key_message: result.idea.key_message || '', content_type: result.idea.content_type || 'hot_take',
+            source: 'agent', status: 'idea', priority: 'medium', platform: genPlatform,
+          });
+          generated++;
+        }
+      } catch (err: any) {
+        toast({ title: `Error en idea ${i + 1}`, description: err.message, variant: 'destructive' });
       }
-    } catch (err: any) {
-      toast({ title: 'Error al generar idea', description: err.message, variant: 'destructive' });
-    } finally { setGeneratingIdea(false); }
+    }
+
+    toast({ title: `${generated} ideas generadas`, description: 'Revisalas y aprobá o rechazá para mejorar las próximas.' });
+    fetchIdeas();
+    setGeneratingIdea(false);
+    setGenProgress(0);
   };
 
   if (loading) return (
@@ -98,9 +113,8 @@ export default function ContentIdeas() {
           <p className="text-muted-foreground text-[14px] mt-0.5">{ideas.length} ideas en pipeline</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={generateIdea} disabled={generatingIdea} size="sm" className="gap-1.5">
-            {generatingIdea ? <Loader2 className="h-4 w-4 animate-spin" /> : <SparklesIcon className="h-4 w-4" />}
-            {generatingIdea ? 'Generando...' : 'Generar con AI'}
+          <Button variant="outline" onClick={() => setShowGenerate(true)} disabled={generatingIdea} size="sm" className="gap-1.5">
+            {generatingIdea ? <><Loader2 className="h-4 w-4 animate-spin" /> Generando {genProgress}/{genCount}...</> : <><SparklesIcon className="h-4 w-4" /> Generar con AI</>}
           </Button>
           <Button onClick={() => { setNewStatus('idea'); setShowNew(true); }} size="sm" className="gap-1.5">
             <PlusIcon className="h-4 w-4" /> Nueva Idea
@@ -215,6 +229,49 @@ export default function ContentIdeas() {
               </Select>
             </div>
             <Button onClick={createIdea} disabled={!newTitle} className="w-full">Crear Idea</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== GENERATE IDEAS DIALOG ===== */}
+      <Dialog open={showGenerate} onOpenChange={setShowGenerate}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Generar ideas con AI</DialogTitle></DialogHeader>
+          <p className="text-[13px] text-muted-foreground">
+            Generá varias ideas de una para compararlas. Después aprobá o rechazá cada una — eso mejora las próximas generaciones.
+          </p>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Cantidad de ideas</label>
+              <div className="flex gap-2">
+                {[3, 5, 10, 15].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setGenCount(n)}
+                    className={`flex-1 py-2 rounded-lg text-[14px] font-semibold transition-all ${genCount === n ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Plataforma</label>
+              <Select value={genPlatform} onValueChange={setGenPlatform}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="multi">Todas</SelectItem>
+                  <SelectItem value="youtube">YouTube</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  <SelectItem value="twitter">X/Twitter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={generateIdeas} className="w-full gap-1.5">
+              <SparklesIcon className="h-4 w-4" /> Generar {genCount} ideas
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
