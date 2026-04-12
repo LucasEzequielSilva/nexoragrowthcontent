@@ -61,7 +61,7 @@ export function AppSidebar() {
                     className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
                     activeClassName="bg-accent text-foreground font-semibold border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
                   >
-                    <Icon className={`h-[18px] w-[18px] shrink-0 transition-all duration-200 ${isActive ? 'text-primary brightness-110 drop-shadow-[0_1px_3px_rgba(16,185,129,0.5)]' : 'text-muted-foreground/50 group-hover:text-muted-foreground'}`} />
+                    <Icon className={`h-[18px] w-[18px] shrink-0 transition-all duration-200 ${isActive ? 'text-foreground' : 'text-muted-foreground/50 group-hover:text-muted-foreground'}`} />
                     {!collapsed && <span>{item.title}</span>}
                   </NavLink>
                 </SidebarMenuButton>
@@ -116,7 +116,7 @@ export function AppSidebar() {
                 className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
                 activeClassName="bg-accent text-foreground font-semibold border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
               >
-                <Cog6ToothIcon className={`h-[18px] w-[18px] shrink-0 transition-all duration-200 ${isSettingsActive ? 'text-primary brightness-110 drop-shadow-[0_1px_3px_rgba(16,185,129,0.5)]' : 'text-muted-foreground/50 group-hover:text-muted-foreground'}`} />
+                <Cog6ToothIcon className={`h-[18px] w-[18px] shrink-0 transition-all duration-200 ${isSettingsActive ? 'text-foreground' : 'text-muted-foreground/50 group-hover:text-muted-foreground'}`} />
                 {!collapsed && <span>Configuración</span>}
               </NavLink>
             </SidebarMenuButton>
