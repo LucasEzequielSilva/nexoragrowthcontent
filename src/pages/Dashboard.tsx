@@ -3,15 +3,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   LightBulbIcon, CalendarIcon, UserGroupIcon, CpuChipIcon,
   CalendarDaysIcon, EyeIcon, DocumentTextIcon, RocketLaunchIcon,
   PaperAirplaneIcon, ShareIcon, PlayIcon, PlusIcon,
-  CheckCircleIcon,
+  CheckCircleIcon, SparklesIcon,
 } from '@heroicons/react/24/solid';
+import { Send, Lightbulb, Trophy, AlertCircle, HelpCircle, Pencil, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { KanbanBoard, statusConfig } from '@/components/KanbanBoard';
 import type { ComponentType, SVGProps } from 'react';
 
@@ -24,24 +28,65 @@ const platformIcons: Record<string, HeroIcon> = {
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 1, 0.5, 1] } } };
 
+const noteTypes = [
+  { value: 'insight', icon: Lightbulb, label: 'Insight', color: 'text-amber-400' },
+  { value: 'win', icon: Trophy, label: 'Win', color: 'text-emerald-400' },
+  { value: 'fail', icon: AlertCircle, label: 'Fail', color: 'text-red-400' },
+  { value: 'question', icon: HelpCircle, label: 'Pregunta', color: 'text-blue-400' },
+  { value: 'observation', icon: Pencil, label: 'Observacion', color: 'text-violet-400' },
+];
+
 export default function Dashboard() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [ideas, setIdeas] = useState<any[]>([]);
   const [competitors, setCompetitors] = useState<any[]>([]);
   const [competitorContent, setCompetitorContent] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [noteText, setNoteText] = useState('');
+  const [noteType, setNoteType] = useState('insight');
   const [loading, setLoading] = useState(true);
+
+  const fetchNotes = async () => {
+    const { data } = await supabase
+      .from('creator_notes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    setNotes(data || []);
+  };
 
   useEffect(() => {
     Promise.all([
       supabase.from('content_ideas').select('*').order('created_at', { ascending: false }),
       supabase.from('competitors').select('*').eq('is_active', true),
       supabase.from('competitor_content').select('*, competitors(name, avatar_url)').order('created_at', { ascending: false }).limit(6),
-    ]).then(([ideasRes, compRes, contentRes]) => {
+      supabase.from('creator_notes').select('*').order('created_at', { ascending: false }).limit(10),
+    ]).then(([ideasRes, compRes, contentRes, notesRes]) => {
       setIdeas(ideasRes.data || []);
       setCompetitors(compRes.data || []);
       setCompetitorContent(contentRes.data || []);
+      setNotes(notesRes.data || []);
       setLoading(false);
     });
   }, []);
+
+  const addNote = async () => {
+    if (!noteText.trim()) return;
+    await supabase.from('creator_notes').insert({
+      user_id: user?.id,
+      note: noteText.trim(),
+      note_type: noteType,
+    });
+    setNoteText('');
+    fetchNotes();
+    toast({ title: 'Nota guardada' });
+  };
+
+  const deleteNote = async (id: string) => {
+    await supabase.from('creator_notes').delete().eq('id', id);
+    fetchNotes();
+  };
 
   const thisWeek = ideas.filter(i => i.scheduled_date && i.status !== 'published');
 
@@ -94,6 +139,76 @@ export default function Dashboard() {
             </Card>
           );
         })}
+      </motion.div>
+
+      {/* Creator Notes — diario rápido */}
+      <motion.div variants={item}>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-[15px] font-semibold">Notas del creador</CardTitle>
+              <span className="text-[12px] text-muted-foreground">{notes.length} notas recientes</span>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Quick add */}
+            <div className="flex gap-2">
+              <div className="flex bg-muted rounded-lg p-0.5 shrink-0">
+                {noteTypes.map(nt => {
+                  const Icon = nt.icon;
+                  return (
+                    <button
+                      key={nt.value}
+                      onClick={() => setNoteType(nt.value)}
+                      title={nt.label}
+                      className={`p-1.5 rounded-md transition-all ${noteType === nt.value ? 'bg-card shadow-sm' : 'hover:bg-card/50'}`}
+                    >
+                      <Icon className={`h-4 w-4 ${noteType === nt.value ? nt.color : 'text-muted-foreground/40'}`} />
+                    </button>
+                  );
+                })}
+              </div>
+              <Input
+                placeholder="Algo que te paso hoy, un insight, un win..."
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addNote()}
+                className="flex-1"
+              />
+              <Button size="icon" onClick={addNote} disabled={!noteText.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Notes feed */}
+            {notes.length > 0 && (
+              <div className="space-y-1.5 max-h-48 overflow-auto scrollbar-thin">
+                {notes.map(note => {
+                  const nt = noteTypes.find(t => t.value === note.note_type) || noteTypes[0];
+                  const Icon = nt.icon;
+                  const timeAgo = (() => {
+                    const diff = Date.now() - new Date(note.created_at).getTime();
+                    const mins = Math.floor(diff / 60000);
+                    if (mins < 60) return `${mins}m`;
+                    const hours = Math.floor(mins / 60);
+                    if (hours < 24) return `${hours}h`;
+                    return `${Math.floor(hours / 24)}d`;
+                  })();
+                  return (
+                    <div key={note.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-accent/50 group transition-colors">
+                      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${nt.color}`} />
+                      <p className="text-[13px] text-foreground/80 flex-1 leading-relaxed">{note.note}</p>
+                      <span className="text-[11px] text-muted-foreground/40 shrink-0">{timeAgo}</span>
+                      <button onClick={() => deleteNote(note.id)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <X className="h-3.5 w-3.5 text-muted-foreground/40 hover:text-destructive" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Pipeline — Kanban (shared component) */}
