@@ -4,6 +4,7 @@ import {
 } from '@heroicons/react/24/solid';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton,
   SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -80,12 +81,17 @@ export function AppSidebar() {
       <SidebarHeader className={collapsed ? "p-2 pb-1 flex justify-center" : "p-4 pb-2"}>
         {collapsed ? (
           /* Collapsed: solo isotipo centrado */
-          <button
-            onClick={toggleSidebar}
-            className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-b from-primary/80 to-primary border border-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3),inset_0_-1px_0_0_rgba(0,0,0,0.1)] brightness-110 transition-all duration-200 hover:brightness-100"
-          >
-            <RocketLaunchIcon className="h-[18px] w-[18px] text-white" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={toggleSidebar}
+                className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-b from-primary/80 to-primary border border-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3),inset_0_-1px_0_0_rgba(0,0,0,0.1)] brightness-110 transition-all duration-200 hover:brightness-100"
+              >
+                <RocketLaunchIcon className="h-[18px] w-[18px] text-white" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Expandir</TooltipContent>
+          </Tooltip>
         ) : (
           /* Expanded: isotipo + nombre + botón colapsar */
           <div className="flex items-center gap-3">
@@ -94,9 +100,14 @@ export function AppSidebar() {
             </div>
             <div className="flex flex-1 items-center justify-between">
               <span className="text-sm font-bold tracking-tight text-foreground">Nexora</span>
-              <button onClick={toggleSidebar} className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)] text-muted-foreground hover:text-foreground transition-all duration-200">
-                <CollapseIcon />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button onClick={toggleSidebar} className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)] text-muted-foreground hover:text-foreground transition-all duration-200">
+                    <CollapseIcon />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Colapsar</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         )}

@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { KanbanBoard, statusConfig } from '@/components/KanbanBoard';
 import type { ComponentType, SVGProps } from 'react';
 
@@ -157,14 +158,17 @@ export default function Dashboard() {
                 {noteTypes.map(nt => {
                   const Icon = nt.icon;
                   return (
-                    <button
-                      key={nt.value}
-                      onClick={() => setNoteType(nt.value)}
-                      title={nt.label}
-                      className={`p-1.5 rounded-md transition-all ${noteType === nt.value ? 'bg-card shadow-sm' : 'hover:bg-card/50'}`}
-                    >
-                      <Icon className={`h-4 w-4 ${noteType === nt.value ? nt.color : 'text-muted-foreground/40'}`} />
-                    </button>
+                    <Tooltip key={nt.value}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setNoteType(nt.value)}
+                          className={`p-1.5 rounded-md transition-all ${noteType === nt.value ? 'bg-card shadow-sm' : 'hover:bg-card/50'}`}
+                        >
+                          <Icon className={`h-4 w-4 ${noteType === nt.value ? nt.color : 'text-muted-foreground/40'}`} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">{nt.label}</TooltipContent>
+                    </Tooltip>
                   );
                 })}
               </div>
@@ -175,9 +179,14 @@ export default function Dashboard() {
                 onKeyDown={e => e.key === 'Enter' && addNote()}
                 className="flex-1"
               />
-              <Button size="icon" onClick={addNote} disabled={!noteText.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" onClick={addNote} disabled={!noteText.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Guardar nota</TooltipContent>
+              </Tooltip>
             </div>
 
             {/* Notes feed */}
@@ -199,9 +208,14 @@ export default function Dashboard() {
                       <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${nt.color}`} />
                       <p className="text-[13px] text-foreground/80 flex-1 leading-relaxed">{note.note}</p>
                       <span className="text-[11px] text-muted-foreground/40 shrink-0">{timeAgo}</span>
-                      <button onClick={() => deleteNote(note.id)} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <X className="h-3.5 w-3.5 text-muted-foreground/40 hover:text-destructive" />
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button onClick={() => deleteNote(note.id)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X className="h-3.5 w-3.5 text-muted-foreground/40 hover:text-destructive" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Eliminar</TooltipContent>
+                      </Tooltip>
                     </div>
                   );
                 })}
